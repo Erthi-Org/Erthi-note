@@ -16,15 +16,15 @@ android {
             }
         }
     }
-    namespace = "com.fgmachines.fgnote"
+    namespace = "org.erthi.note"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.fgmachines.fgnote"
+        applicationId = "org.erthi.note"
         minSdk = 26
         targetSdk = 35
         versionCode = 1
-        versionName = "0.4.0-beta1"
+        versionName = "0.5.0-dev"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
