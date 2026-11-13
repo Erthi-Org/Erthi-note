@@ -16,7 +16,7 @@ android {
             }
         }
     }
-    namespace = "org.erthi.note"
+    namespace = "com.fgmachines.fgnote"
     compileSdk = 36
 
     defaultConfig {
