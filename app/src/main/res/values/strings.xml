@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">FG Note</string>
+    <string name="app_name">Erthi Note</string>
     <string name="tagline">Your ideas, one tap away</string>
     <string name="overlay_title">Floating workspace</string>
     <string name="overlay_description">Keep your notes accessible over other apps.</string>
@@ -24,7 +24,7 @@
     <string name="delete">Delete</string>
     <string name="delete_question">Delete this note?</string>
     <string name="cancel">Cancel</string>
-    <string name="notification_title">Floating Note is active</string>
+    <string name="notification_title">Erthi Note is active</string>
     <string name="notification_text">Tap to manage notes, or stop the bubble from the app.</string>
     <string name="permission_denied">Floating permission has not been granted</string>
     <string name="note_color">Note color</string>
