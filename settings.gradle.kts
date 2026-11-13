@@ -12,5 +12,5 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
-rootProject.name = "FG-Note"
+rootProject.name = "Erthi-Note"
 include(":app")
