@@ -1,28 +1,17 @@
-# FG Note — by FG Machines
+# Erthi Note — إرثي نوت
 
-Offline-first Android sticky notes with a colourful, quick-entry library inspired by ColorNote usability principles. No proprietary source or design assets are copied.
+Offline-first Android notes application for the Erthi initiative.
 
-Development repository: nexvary/Floating-Note, branch dev/foundation. Planned final account: FGMachines; repository has not been moved yet.
+Development branch: `feature/erthi-note`. This branch is under active development and is not a verified release.
 
-## Android identity
-- App label: FG Note
-- Application ID and Kotlin package: com.fgmachines.fgnote
-- Beta version: 0.4.0-beta1 (new versionCode 1 for new Android package)
-- Android 8+; local storage, Arabic and English.
+- Application ID: `org.erthi.note`
+- Version: `0.5.0-dev`
+- Android 8+; Arabic RTL and English support are development priorities.
+- Planned UI: Andalusian accents, silver borders, accessible typography and real colored icons.
+- Preserve local note editing, floating notes, checklists, reminders, search, exports and encrypted backups after verifying implementation.
 
-IMPORTANT MIGRATION: FG Note installs separately from old com.nexvary.floatingnote. Android will NOT transfer notes automatically. In the old app export an encrypted .nfn backup, save the password, then install FG Note and Restore encrypted. Keep the old application installed until you verify restoration.
+## Migration warning
+The new application ID installs separately from `com.nexvary.floatingnote` and `com.fgmachines.fgnote`. Android does not migrate private app data automatically. Export an encrypted backup in the old app and verify restore in Erthi Note before uninstalling it. Backup format compatibility remains to be tested.
 
-## Editing
-- Separate autosaved title and body, movable bubble and up to 4 floating notes.
-- Selected-word or selected-text colouring, headings, bold, checklists and undo/redo.
-- Word-by-word and grapheme-aware character deletion.
-- Embedded pictures as compact inline JPEG within locally stored rich HTML.
-- PDF export with pages, PNG image export for shorter notes, password-encrypted and JSON archives.
-- Save-and-exit confirmation, pinned notes, reminders, search and share with installed email apps.
-
-Rich-note backups include embedded pictures; a single archive is limited to 5 MiB. Long notes should use multi-page PDF rather than PNG. The current release is a beta requiring device QA.
-
-## Privacy
-No internet or accessibility permissions. No email credentials or automatic Gmail/Proton sync. The ColourNote reference APK was inspected for comparison only.
-
-See docs/RELEASE_SIGNING.md for production signing; debug builds cannot upgrade an old differently signed package.
+## Release gates
+Verify manifest and Kotlin package references, compile, unit tests, emulator QA, Android 15 overlay behavior, backup restore, and signed APK before release.
