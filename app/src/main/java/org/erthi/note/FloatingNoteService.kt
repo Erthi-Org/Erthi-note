@@ -630,6 +630,7 @@ class FloatingNoteService : Service() {
                 else -> false
             }
         }
+        card.alpha = savedAlpha
         if (!addWindow(card, p)) return
         editors[noteId] = EditorSession(card, input, titleInput, p)
         keepBubbleAboveEditor()
@@ -725,8 +726,7 @@ class FloatingNoteService : Service() {
             return false
         }
         return try {
-            view.alpha = savedAlpha
-        wm.addView(view, params)
+            wm.addView(view, params)
             true
         } catch (error: RuntimeException) {
             Log.w("NEXVARYFloating", "Overlay attachment failed", error)
