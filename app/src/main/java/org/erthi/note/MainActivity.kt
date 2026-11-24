@@ -660,13 +660,11 @@ class MainActivity : Activity() {
     @Deprecated("Uses platform activity-result mechanism without external dependencies.")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if (resultCode != RESULT_OK) return
         if (requestCode == REQUEST_PIN) {
-            if (resultCode != RESULT_OK) {
-                finishAffinity()
-            }
+            if (resultCode != RESULT_OK) finishAffinity()
             return
         }
+        if (resultCode != RESULT_OK) return
         val uri = data?.data ?: return
         if (requestCode == REQUEST_PICK_IMAGE) {
             val id = pendingImageId
