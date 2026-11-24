@@ -67,7 +67,7 @@ class SettingsActivity : Activity() {
     private fun sectionLabel(text: String) = label(text, 12f, Palette.MINT, true).apply {
         val h = dp(12); val v = dp(20)
         setPadding(h, v, h, dp(6))
-        textAllCaps = true
+        isAllCaps = true
     }
 
     private fun infoRow(text: String) = label(text, 14f, Palette.MUTED).apply {
