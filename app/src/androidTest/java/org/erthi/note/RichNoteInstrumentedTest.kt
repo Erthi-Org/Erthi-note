@@ -21,11 +21,11 @@ class RichNoteInstrumentedTest {
 
 
     @Test fun quickSettingsTileIsRegisteredWithSystemOnlyPermission() {
-        val name = android.content.ComponentName(ctx, FGNoteTileService::class.java)
+        val name = android.content.ComponentName(ctx, ErthiNoteTileService::class.java)
         val info = ctx.packageManager.getServiceInfo(name, 0)
         assertEquals("android.permission.BIND_QUICK_SETTINGS_TILE", info.permission)
         assertTrue(info.exported)
-        assertEquals("FG Note", ctx.getString(R.string.quick_tile_label))
+        assertEquals("Erthi Note", ctx.getString(R.string.quick_tile_label))
     }
 
     @Test fun formattingRoundTripsAndIndependentColoursStaySeparate() {
@@ -58,7 +58,7 @@ class RichNoteInstrumentedTest {
         val styled = SpannableStringBuilder("Rich colour test\nثاني سطر")
         RichNotes.colour(styled, 0, 4, Color.RED)
         val note = Note(1L, styled.toString(), 123L, 0, false, null,
-            "FG Note export", RichNotes.serialize(styled))
+            "Erthi Note export", RichNotes.serialize(styled))
         val png = ByteArrayOutputStream()
         NoteExporter.png(ctx, note, png)
         val p = png.toByteArray()

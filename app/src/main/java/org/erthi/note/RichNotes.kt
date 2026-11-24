@@ -11,11 +11,15 @@ import android.text.Html
 import android.text.Spannable
 import android.text.SpannableStringBuilder
 import android.text.Spanned
+import android.text.style.AbsoluteSizeSpan
+import android.text.style.AlignmentSpan
+import android.text.style.BackgroundColorSpan
 import android.text.style.ForegroundColorSpan
 import android.text.style.ImageSpan
 import android.text.style.RelativeSizeSpan
 import android.text.style.StyleSpan
 import android.text.style.StrikethroughSpan
+import android.text.style.TypefaceSpan
 import android.text.style.UnderlineSpan
 import android.graphics.Typeface
 import java.io.ByteArrayOutputStream
@@ -169,13 +173,66 @@ object RichNotes {
             Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
     }
 
+    fun bold(editable: Editable, start: Int, end: Int) {
+        if (end > start) editable.setSpan(StyleSpan(Typeface.BOLD), start, end,
+            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+    }
+
+    fun fontFamily(editable: Editable, start: Int, end: Int, family: String) {
+        if (end > start) editable.setSpan(TypefaceSpan(family), start, end,
+            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+    }
+
+    fun absoluteSize(editable: Editable, start: Int, end: Int, sizeSp: Int) {
+        if (end > start) editable.setSpan(AbsoluteSizeSpan(sizeSp, true), start, end,
+            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+    }
+
+    fun highlight(editable: Editable, start: Int, end: Int, color: Int) {
+        if (end > start) editable.setSpan(BackgroundColorSpan(color), start, end,
+            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+    }
+
+    fun align(editable: Editable, start: Int, end: Int,
+              alignment: android.text.Layout.Alignment) {
+        if (end > start) editable.setSpan(AlignmentSpan.Standard(alignment), start, end,
+            Spanned.SPAN_INCLUSIVE_INCLUSIVE)
+    }
+
+    private val SPAN_CLASSES: Array<Class<*>> = arrayOf(
+        ForegroundColorSpan::class.java, BackgroundColorSpan::class.java,
+        RelativeSizeSpan::class.java, AbsoluteSizeSpan::class.java,
+        StyleSpan::class.java, UnderlineSpan::class.java, StrikethroughSpan::class.java,
+        TypefaceSpan::class.java, AlignmentSpan.Standard::class.java,
+    )
+
+    /** Clears formatting only within [start, end]; spans extending outside are preserved by clipping. */
     fun clearSpans(editable: Editable, start: Int, end: Int) {
         if (end <= start) return
-        for (cls in arrayOf(ForegroundColorSpan::class.java, RelativeSizeSpan::class.java,
-                StyleSpan::class.java, UnderlineSpan::class.java, StrikethroughSpan::class.java)) {
+        for (cls in SPAN_CLASSES) {
             @Suppress("UNCHECKED_CAST")
-            editable.getSpans(start, end, cls as Class<Any>).forEach { editable.removeSpan(it) }
+            editable.getSpans(start, end, cls as Class<Any>).forEach { span ->
+                val spanStart = editable.getSpanStart(span)
+                val spanEnd = editable.getSpanEnd(span)
+                val flags = editable.getSpanFlags(span)
+                editable.removeSpan(span)
+                if (spanStart < start) editable.setSpan(copySpan(span), spanStart, start, flags)
+                if (spanEnd > end) editable.setSpan(copySpan(span), end, spanEnd, flags)
+            }
         }
+    }
+
+    private fun copySpan(span: Any): Any = when (span) {
+        is ForegroundColorSpan -> ForegroundColorSpan(span.foregroundColor)
+        is BackgroundColorSpan -> BackgroundColorSpan(span.backgroundColor)
+        is RelativeSizeSpan -> RelativeSizeSpan(span.sizeChange)
+        is AbsoluteSizeSpan -> AbsoluteSizeSpan(span.size, span.dip)
+        is StyleSpan -> StyleSpan(span.style)
+        is UnderlineSpan -> UnderlineSpan()
+        is StrikethroughSpan -> StrikethroughSpan()
+        is TypefaceSpan -> TypefaceSpan(span.family ?: "")
+        is AlignmentSpan.Standard -> AlignmentSpan.Standard(span.alignment)
+        else -> span
     }
 }
 

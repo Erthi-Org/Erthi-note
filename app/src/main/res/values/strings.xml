@@ -135,6 +135,7 @@
     <string name="pin_set">Set PIN</string>
     <string name="pin_skip">Skip</string>
     <string name="pin_unlock">Unlock</string>
+    <string name="pin_throttle">Too many attempts. Try again in %d seconds.</string>
     <string name="pin_wrong">Wrong PIN. Try again.</string>
     <string name="pin_too_short">PIN must be at least 4 digits.</string>
     <string name="pin_mismatch">PINs do not match.</string>

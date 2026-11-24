@@ -118,22 +118,19 @@ object NoteExporter {
     }
 
     /**
-     * Minimal DOCX (Office Open XML) export. Produces a valid .docx readable by
-     * Word, LibreOffice, and Google Docs. Rich-text spans are flattened to plain
-     * paragraphs for portability; the note title is styled as Heading 1.
+     * DOCX export with span fidelity. Bold, italic, underline, strikethrough,
+     * foreground colour, background highlight, font size, and font family are
+     * translated to OOXML <w:rPr> properties. Arabic paragraphs emit <w:bidi/>.
      */
-    fun docx(note: Note, destination: OutputStream) {
+    fun docx(context: android.content.Context, note: Note, destination: OutputStream) {
+        val styled = if (note.richHtml.isNotBlank())
+            RichNotes.deserialize(context, note.richHtml, note.body) as android.text.Spanned
+        else
+            android.text.SpannableStringBuilder(note.body)
         val titleText = escapeXml(note.title.ifBlank { "Untitled" })
-        val bodyLines = note.body.split('\n')
-        val paragraphs = buildString {
-            bodyLines.forEach { line ->
-                append("<w:p><w:r><w:t xml:space=\"preserve\">")
-                append(escapeXml(line))
-                append("</w:t></w:r></w:p>")
-            }
-        }
+        val paragraphs = buildDocxBody(styled)
         val doc = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<w:document xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:wp14="http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:w10="urn:schemas-microsoft-com:office:word" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup" xmlns:wpi="http://schemas.microsoft.com/office/word/2010/wordprocessingInk" xmlns:wne="http://schemas.microsoft.com/office/word/2006/wordml" xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape" mc:Ignorable="w14 wp14">
+<w:document xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" mc:Ignorable="">
 <w:body>
 <w:p><w:pPr><w:pStyle w:val="Heading1"/></w:pPr><w:r><w:t>$titleText</w:t></w:r></w:p>
 $paragraphs
@@ -172,6 +169,92 @@ $paragraphs
             entry("word/styles.xml", styles)
         }
     }
+
+    private fun buildDocxBody(text: android.text.Spanned): String {
+        val full = text.toString()
+        val lines = full.split('\n')
+        val sb = StringBuilder()
+        var offset = 0
+        for (line in lines) {
+            val lineEnd = offset + line.length
+            val isRtl = line.any { it in '\u0600'..'\u06FF' || it in '\u0750'..'\u077F' }
+            sb.append("<w:p>")
+            if (isRtl) sb.append("<w:pPr><w:bidi/></w:pPr>")
+            if (line.isEmpty()) {
+                sb.append("<w:r><w:t/></w:r>")
+            } else {
+                val boundaries = sortedSetOf(offset, lineEnd)
+                for (cls in DOCX_SPAN_CLASSES) {
+                    @Suppress("UNCHECKED_CAST")
+                    (text as android.text.Spanned).getSpans(offset, lineEnd, cls as Class<Any>)
+                        .forEach { span ->
+                            boundaries.add(text.getSpanStart(span).coerceIn(offset, lineEnd))
+                            boundaries.add(text.getSpanEnd(span).coerceIn(offset, lineEnd))
+                        }
+                }
+                val pts = boundaries.toList()
+                for (i in 0 until pts.size - 1) {
+                    val s = pts[i]; val e = pts[i + 1]
+                    if (s >= e) continue
+                    val rpr = buildRunPr(text, s, e)
+                    val t = escapeXml(full.substring(s, e))
+                    val space = if (t.startsWith(' ') || t.endsWith(' ')) " xml:space=\"preserve\"" else ""
+                    sb.append("<w:r>")
+                    if (rpr.isNotEmpty()) sb.append("<w:rPr>$rpr</w:rPr>")
+                    sb.append("<w:t$space>$t</w:t>")
+                    sb.append("</w:r>")
+                }
+            }
+            sb.append("</w:p>\n")
+            offset = lineEnd + 1
+        }
+        return sb.toString()
+    }
+
+    private val DOCX_SPAN_CLASSES: Array<Class<*>> = arrayOf(
+        android.text.style.StyleSpan::class.java,
+        android.text.style.UnderlineSpan::class.java,
+        android.text.style.StrikethroughSpan::class.java,
+        android.text.style.ForegroundColorSpan::class.java,
+        android.text.style.BackgroundColorSpan::class.java,
+        android.text.style.AbsoluteSizeSpan::class.java,
+        android.text.style.RelativeSizeSpan::class.java,
+        android.text.style.TypefaceSpan::class.java,
+    )
+
+    private fun buildRunPr(text: android.text.Spanned, start: Int, end: Int): String {
+        val sb = StringBuilder()
+        for (cls in DOCX_SPAN_CLASSES) {
+            @Suppress("UNCHECKED_CAST")
+            text.getSpans(start, end, cls as Class<Any>).forEach { span ->
+                when (span) {
+                    is android.text.style.StyleSpan -> {
+                        if (span.style and android.graphics.Typeface.BOLD != 0) sb.append("<w:b/>")
+                        if (span.style and android.graphics.Typeface.ITALIC != 0) sb.append("<w:i/>")
+                    }
+                    is android.text.style.UnderlineSpan -> sb.append("<w:u w:val=\"single\"/>")
+                    is android.text.style.StrikethroughSpan -> sb.append("<w:strike/>")
+                    is android.text.style.ForegroundColorSpan ->
+                        sb.append("<w:color w:val=\"${colorHex(span.foregroundColor)}\"/>")
+                    is android.text.style.BackgroundColorSpan ->
+                        sb.append("<w:shd w:val=\"clear\" w:color=\"auto\" w:fill=\"${colorHex(span.backgroundColor)}\"/>")
+                    is android.text.style.AbsoluteSizeSpan ->
+                        sb.append("<w:sz w:val=\"${span.size * 2 / 1}\"/>")
+                    is android.text.style.RelativeSizeSpan ->
+                        sb.append("<w:sz w:val=\"${(24 * span.sizeChange).toInt()}\"/>")
+                    is android.text.style.TypefaceSpan ->
+                        span.family?.takeIf { it.isNotEmpty() }?.let { fam ->
+                            val f = escapeXml(fam)
+                            sb.append("<w:rFonts w:ascii=\"$f\" w:hAnsi=\"$f\" w:cs=\"$f\"/>")
+                        }
+                }
+            }
+        }
+        return sb.toString()
+    }
+
+    private fun colorHex(color: Int): String =
+        String.format("%06X", color and 0xFFFFFF)
 
     private fun escapeXml(text: String): String = text
         .replace("&", "&amp;")

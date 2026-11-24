@@ -40,7 +40,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Unit tests, lint, debug APK
-        run: ./gradlew --no-daemon :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
+        run: ./gradlew --no-daemon :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest
 
       - name: Upload Erthi Note debug APK
         if: success()

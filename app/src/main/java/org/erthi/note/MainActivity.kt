@@ -683,7 +683,7 @@ class MainActivity : Activity() {
             val note = database.get(exportId) ?: return
             Thread {
                 try {
-                    contentResolver.openOutputStream(uri)?.use { NoteExporter.docx(note, it) }
+                    contentResolver.openOutputStream(uri)?.use { NoteExporter.docx(applicationContext, note, it) }
                         ?: error("Unable to write export")
                     runOnUiThread {
                         if (!isFinishing) Toast.makeText(this, R.string.export_success,

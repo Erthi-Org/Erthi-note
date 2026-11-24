@@ -10,8 +10,8 @@ import android.widget.Toast
 
 /**
  * Full-screen PIN entry gate. Launched by MainActivity when PIN is set.
- * On success returns RESULT_OK; on cancel finishes the calling activity.
- * PIN is stored as a SHA-256 hash in SharedPreferences — never plaintext.
+ * PIN stored as PBKDF2WithHmacSHA256 with a random 16-byte salt.
+ * Legacy SHA-256 hashes are accepted and silently upgraded on successful login.
  */
 class PinActivity : Activity() {
 
@@ -20,15 +20,52 @@ class PinActivity : Activity() {
         const val ACTION_SETUP = "setup"
         const val PREF_PIN_HASH = "pin_hash"
         const val PREFS_NAME = "erthi_pin"
+        private const val PREF_FAIL_COUNT = "fail_count"
+        private const val PREF_FAIL_TIME = "fail_time"
+        private const val MAX_FREE_TRIES = 5
 
         fun isEnabled(activity: Activity): Boolean =
             activity.getSharedPreferences(PREFS_NAME, android.content.Context.MODE_PRIVATE)
                 .getString(PREF_PIN_HASH, null) != null
 
-        fun hash(pin: String): String {
-            val digest = java.security.MessageDigest.getInstance("SHA-256")
-            val bytes = digest.digest(pin.toByteArray(Charsets.UTF_8))
-            return bytes.joinToString("") { "%02x".format(it) }
+        fun hashPin(pin: String): String {
+            val salt = ByteArray(16).also { java.security.SecureRandom().nextBytes(it) }
+            val spec = javax.crypto.spec.PBEKeySpec(pin.toCharArray(), salt, 100_000, 256)
+            val hash = javax.crypto.SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
+                .generateSecret(spec).encoded
+            return salt.hex() + ":" + hash.hex()
+        }
+
+        fun verify(pin: String, stored: String): Boolean {
+            return if (':' in stored) {
+                val saltHex = stored.substringBefore(':')
+                val expectedHash = stored.substringAfter(':')
+                val salt = saltHex.hexToBytes() ?: return false
+                val spec = javax.crypto.spec.PBEKeySpec(pin.toCharArray(), salt, 100_000, 256)
+                val hash = javax.crypto.SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
+                    .generateSecret(spec).encoded
+                hash.hex() == expectedHash
+            } else {
+                val digest = java.security.MessageDigest.getInstance("SHA-256")
+                digest.digest(pin.toByteArray(Charsets.UTF_8)).hex() == stored
+            }
+        }
+
+        private fun ByteArray.hex() = joinToString("") { "%02x".format(it) }
+        private fun String.hexToBytes(): ByteArray? = try {
+            if (length % 2 != 0) null
+            else ByteArray(length / 2) { i ->
+                ((this[i * 2].digitToInt(16) shl 4) or this[i * 2 + 1].digitToInt(16)).toByte()
+            }
+        } catch (_: Exception) { null }
+
+        fun throttleSeconds(prefs: android.content.SharedPreferences): Long {
+            val failCount = prefs.getInt(PREF_FAIL_COUNT, 0)
+            if (failCount < MAX_FREE_TRIES) return 0L
+            val failTime = prefs.getLong(PREF_FAIL_TIME, 0L)
+            val delay = minOf(1L shl (failCount - MAX_FREE_TRIES), 3600L) * 1000L
+            val remaining = (failTime + delay - System.currentTimeMillis()) / 1000L
+            return maxOf(0L, remaining)
         }
     }
 
@@ -72,7 +109,7 @@ class PinActivity : Activity() {
             textSize = 28f
             setTextColor(Palette.WHITE)
             setHintTextColor(Palette.MUTED)
-            hint = "••••"
+            hint = "\u2022\u2022\u2022\u2022"
             gravity = Gravity.CENTER
             background = roundShape(Palette.PANEL, 16, Palette.BORDER)
             val p = dp(16)
@@ -90,7 +127,7 @@ class PinActivity : Activity() {
                 textSize = 28f
                 setTextColor(Palette.WHITE)
                 setHintTextColor(Palette.MUTED)
-                hint = "••••"
+                hint = "\u2022\u2022\u2022\u2022"
                 gravity = Gravity.CENTER
                 background = roundShape(Palette.PANEL, 16, Palette.BORDER)
                 val p = dp(16)
@@ -116,7 +153,7 @@ class PinActivity : Activity() {
                     return@action
                 }
                 getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
-                    .putString(PREF_PIN_HASH, hash(pin)).apply()
+                    .putString(PREF_PIN_HASH, hashPin(pin)).apply()
                 setResult(RESULT_OK)
                 finish()
             })
@@ -127,13 +164,28 @@ class PinActivity : Activity() {
             })
         } else {
             root.addView(action(getString(R.string.pin_unlock), true) {
+                val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+                val remaining = throttleSeconds(prefs)
+                if (remaining > 0) {
+                    Toast.makeText(this,
+                        getString(R.string.pin_throttle, remaining), Toast.LENGTH_SHORT).show()
+                    return@action
+                }
                 val pin = pinField.text.toString()
-                val stored = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-                    .getString(PREF_PIN_HASH, null)
-                if (stored == null || stored == hash(pin)) {
+                val stored = prefs.getString(PREF_PIN_HASH, null)
+                if (stored == null || verify(pin, stored)) {
+                    prefs.edit().remove(PREF_FAIL_COUNT).remove(PREF_FAIL_TIME).apply()
+                    if (stored != null && ':' !in stored) {
+                        prefs.edit().putString(PREF_PIN_HASH, hashPin(pin)).apply()
+                    }
                     setResult(RESULT_OK)
                     finish()
                 } else {
+                    val newCount = prefs.getInt(PREF_FAIL_COUNT, 0) + 1
+                    prefs.edit()
+                        .putInt(PREF_FAIL_COUNT, newCount)
+                        .putLong(PREF_FAIL_TIME, System.currentTimeMillis())
+                        .apply()
                     Toast.makeText(this, R.string.pin_wrong, Toast.LENGTH_SHORT).show()
                     pinField.text.clear()
                 }

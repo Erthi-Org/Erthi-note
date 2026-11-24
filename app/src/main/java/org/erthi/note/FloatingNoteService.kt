@@ -545,6 +545,8 @@ class FloatingNoteService : Service() {
         toolbar.addView(tools)
         card.addView(toolbar, LinearLayout.LayoutParams(-1, dp(48)))
 
+        val opacityPrefs = getSharedPreferences("editor_opacity", MODE_PRIVATE)
+        val savedAlpha = opacityPrefs.getFloat("alpha", 0.95f).coerceIn(0.3f, 1.0f)
         val sizePrefs = getSharedPreferences("editor_size", MODE_PRIVATE)
         val maxWidth = max(dp(220), screenWidth() - dp(16))
         val maxHeight = max(dp(220), screenHeight() - dp(130))
@@ -719,7 +721,8 @@ class FloatingNoteService : Service() {
             return false
         }
         return try {
-            wm.addView(view, params)
+            view.alpha = savedAlpha
+        wm.addView(view, params)
             true
         } catch (error: RuntimeException) {
             Log.w("NEXVARYFloating", "Overlay attachment failed", error)
