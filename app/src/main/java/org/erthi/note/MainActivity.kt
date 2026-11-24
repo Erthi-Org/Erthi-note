@@ -44,6 +44,7 @@ class MainActivity : Activity() {
         private const val REQUEST_EXPORT_TXT = 317
         private const val REQUEST_EXPORT_HTML = 318
         private const val REQUEST_PIN = 319
+        private const val REQUEST_EXPORT_DOCX = 320
     }
 
     private lateinit var database: NoteStore
@@ -554,10 +555,22 @@ class MainActivity : Activity() {
 
     private fun offerExport(id: Long) {
         val options = arrayOf(getString(R.string.export_pdf), getString(R.string.export_png),
-            getString(R.string.export_txt), getString(R.string.export_html))
+            getString(R.string.export_txt), getString(R.string.export_html),
+            getString(R.string.export_docx))
         AlertDialog.Builder(this).setTitle(R.string.export_note)
             .setItems(options) { _, which ->
                 exportId = id
+                if (which == 4) {
+                    startActivityForResult(Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+                        addCategory(Intent.CATEGORY_OPENABLE)
+                        type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                        val title = database.get(id)?.title.orEmpty()
+                            .replace(Regex("[^\p{L}\p{N}_ -]"), "_")
+                            .take(55).ifBlank { "Erthi-Note" }
+                        putExtra(Intent.EXTRA_TITLE, "$title.docx")
+                    }, REQUEST_EXPORT_DOCX)
+                    return@setItems
+                }
                 startActivityForResult(Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
                     addCategory(Intent.CATEGORY_OPENABLE)
                     type = when (which) {
@@ -567,12 +580,13 @@ class MainActivity : Activity() {
                         else -> "text/html"
                     }
                     val title = database.get(id)?.title.orEmpty()
-                        .replace(Regex("[^\\p{L}\\p{N}_ -]"), "_")
-                        .take(55).ifBlank { "FG-Note" }
+                        .replace(Regex("[^\p{L}\p{N}_ -]"), "_")
+                        .take(55).ifBlank { "Erthi-Note" }
                     val suffix = arrayOf(".pdf", ".png", ".txt", ".html")[which]
                     putExtra(Intent.EXTRA_TITLE, title + suffix)
                 }, REQUEST_EXPORT_PDF + which)
             }.show()
+    }
     }
 
     private fun selectColor(note: Note) {
@@ -665,6 +679,26 @@ class MainActivity : Activity() {
                 }
                 startForegroundService(service)
             }
+            return
+        }
+        if (requestCode == REQUEST_EXPORT_DOCX) {
+            val note = database.get(exportId) ?: return
+            Thread {
+                try {
+                    contentResolver.openOutputStream(uri)?.use { NoteExporter.docx(note, it) }
+                        ?: error("Unable to write export")
+                    runOnUiThread {
+                        if (!isFinishing) Toast.makeText(this, R.string.export_success,
+                            Toast.LENGTH_SHORT).show()
+                    }
+                } catch (error: Exception) {
+                    runOnUiThread {
+                        if (!isFinishing) AlertDialog.Builder(this)
+                            .setMessage(R.string.export_failed)
+                            .setPositiveButton(android.R.string.ok, null).show()
+                    }
+                }
+            }.start()
             return
         }
         if (requestCode in REQUEST_EXPORT_PDF..REQUEST_EXPORT_HTML) {

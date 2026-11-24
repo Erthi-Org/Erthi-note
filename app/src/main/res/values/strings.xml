@@ -141,4 +141,5 @@
     <string name="pin_protection">PIN protection</string>
     <string name="pin_protection_desc">Require PIN to open Erthi Note</string>
     <string name="settings_section_security">Security</string>
+    <string name="export_docx">Word document (DOCX)</string>
 </resources>
