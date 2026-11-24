@@ -35,18 +35,30 @@ object NoteExporter {
 
     private fun drawHeader(canvas: Canvas, note: Note, width: Int, pad: Int) {
         canvas.drawColor(Color.rgb(255, 253, 245))
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = if (note.titleInk == 0) Color.rgb(15, 105, 103) else note.titleInk
-            textSize = note.titleSizeSp.coerceIn(14, 36).toFloat() *
-                (if (width > 700) 1.4f else 1f)
+        val titleText = note.title.let { if (it.length > 100) it.take(99) + "…" else it }
+        val tsp = note.titleSizeSp.coerceIn(14, 36).toFloat() * (if (width > 700) 1.4f else 1f)
+        val inkColor = if (note.titleInk == 0) Color.rgb(15, 105, 103) else note.titleInk
+        val tPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = inkColor
+            textSize = tsp
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
         }
-        val title = note.title
-        val shown = if (title.length > 100) title.take(99) + "…" else title
-        canvas.drawText(shown, pad.toFloat(), 79f, paint)
-        paint.color = Color.rgb(239, 191, 99)
-        canvas.drawRoundRect(pad.toFloat(), 96f, (width-pad).toFloat(),
-            100f, 2f, 2f, paint)
+        // Use StaticLayout for the title so BiDi rendering works correctly for Arabic
+        val titleLayout = StaticLayout.Builder
+            .obtain(titleText, 0, titleText.length, tPaint, width - 2 * pad)
+            .setAlignment(Layout.Alignment.ALIGN_NORMAL)
+            .setMaxLines(2)
+            .setEllipsize(android.text.TextUtils.TruncateAt.END)
+            .setIncludePad(false)
+            .build()
+        canvas.save()
+        canvas.translate(pad.toFloat(), 50f)
+        titleLayout.draw(canvas)
+        canvas.restore()
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.rgb(239, 191, 99)
+        }
+        canvas.drawRoundRect(pad.toFloat(), 96f, (width - pad).toFloat(), 100f, 2f, 2f, paint)
     }
 
     fun txt(note: Note, destination: OutputStream) {
@@ -127,12 +139,17 @@ object NoteExporter {
             RichNotes.deserialize(context, note.richHtml, note.body) as android.text.Spanned
         else
             android.text.SpannableStringBuilder(note.body)
-        val titleText = escapeXml(note.title.ifBlank { "Untitled" })
+        val titleRaw = note.title.ifBlank { "Untitled" }
+        val titleText = escapeXml(titleRaw)
+        val titleIsRtl = titleRaw.any { it in '؀'..'ۿ' || it in 'ݐ'..'ݿ' }
+        val titlePPr = if (titleIsRtl) "<w:pPr><w:pStyle w:val=\"Heading1\"/><w:bidi/></w:pPr>"
+                       else "<w:pPr><w:pStyle w:val=\"Heading1\"/></w:pPr>"
+        val titleRPr = if (titleIsRtl) "<w:rPr><w:rtl/></w:rPr>" else ""
         val paragraphs = buildDocxBody(styled)
         val doc = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:document xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" mc:Ignorable="">
 <w:body>
-<w:p><w:pPr><w:pStyle w:val="Heading1"/></w:pPr><w:r><w:t>$titleText</w:t></w:r></w:p>
+<w:p>$titlePPr<w:r>$titleRPr<w:t>$titleText</w:t></w:r></w:p>
 $paragraphs
 <w:sectPr><w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440"/></w:sectPr>
 </w:body></w:document>"""
@@ -196,7 +213,8 @@ $paragraphs
                 for (i in 0 until pts.size - 1) {
                     val s = pts[i]; val e = pts[i + 1]
                     if (s >= e) continue
-                    val rpr = buildRunPr(text, s, e)
+                    val runIsRtl = full.substring(s, e).any { it in '؀'..'ۿ' || it in 'ݐ'..'ݿ' }
+                    val rpr = buildRunPr(text, s, e) + (if (runIsRtl) "<w:rtl/>" else "")
                     val t = escapeXml(full.substring(s, e))
                     val space = if (t.startsWith(' ') || t.endsWith(' ')) " xml:space=\"preserve\"" else ""
                     sb.append("<w:r>")
@@ -220,6 +238,7 @@ $paragraphs
         android.text.style.AbsoluteSizeSpan::class.java,
         android.text.style.RelativeSizeSpan::class.java,
         android.text.style.TypefaceSpan::class.java,
+        CustomTypefaceSpan::class.java,
     )
 
     private fun buildRunPr(text: android.text.Spanned, start: Int, end: Int): String {
@@ -247,6 +266,10 @@ $paragraphs
                             val f = escapeXml(fam)
                             sb.append("<w:rFonts w:ascii=\"$f\" w:hAnsi=\"$f\" w:cs=\"$f\"/>")
                         }
+                    is CustomTypefaceSpan -> {
+                        val f = escapeXml(span.familyName)
+                        if (f.isNotEmpty()) sb.append("<w:rFonts w:ascii=\"$f\" w:hAnsi=\"$f\" w:cs=\"$f\"/>")
+                    }
                 }
             }
         }

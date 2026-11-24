@@ -23,12 +23,13 @@ object BiometricHelper {
     /** True when the device has strong biometric hardware with enrolled credentials. */
     fun isAvailable(context: Context): Boolean {
         if (Build.VERSION.SDK_INT < 28) return false
-        return if (Build.VERSION.SDK_INT >= 29) {
+        return if (Build.VERSION.SDK_INT >= 30) {
+            // canAuthenticate(int) requires API 30; Authenticators.BIOMETRIC_STRONG also API 30
             val manager = context.getSystemService(BiometricManager::class.java)
             manager?.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG) ==
                 BiometricManager.BIOMETRIC_SUCCESS
         } else {
-            // API 28: FingerprintManager is the only available check on this API level
+            // API 28–29: use FingerprintManager as the only available enrollment check
             @Suppress("DEPRECATION")
             val fm = context.getSystemService(android.hardware.fingerprint.FingerprintManager::class.java)
             @Suppress("DEPRECATION")
