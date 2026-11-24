@@ -172,4 +172,8 @@
     <string name="folder_rename">إعادة تسمية المجلد</string>
     <string name="folder_delete">حذف المجلد</string>
     <string name="move_to_folder">نقل إلى مجلد</string>
+    <string name="biometric_unlock">استخدام البصمة</string>
+    <string name="biometric_subtitle">أكّد هويتك لفتح إرثي نوتة</string>
+    <string name="biometric_failed">فشل التحقق البيومتري</string>
+    <string name="or_use_pin">— أو أدخل رمز PIN —</string>
 </resources>

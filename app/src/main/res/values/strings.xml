@@ -172,4 +172,8 @@
     <string name="folder_rename">Rename folder</string>
     <string name="folder_delete">Delete folder</string>
     <string name="move_to_folder">Move to folder</string>
+    <string name="biometric_unlock">Use biometric</string>
+    <string name="biometric_subtitle">Confirm your identity to unlock Erthi Note</string>
+    <string name="biometric_failed">Biometric authentication failed</string>
+    <string name="or_use_pin">— or enter PIN —</string>
 </resources>

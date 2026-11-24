@@ -2,7 +2,10 @@ package org.erthi.note
 
 import android.app.Activity
 import android.content.Intent
+import android.hardware.biometrics.BiometricPrompt
+import android.os.Build
 import android.os.Bundle
+import android.os.CancellationSignal
 import android.view.Gravity
 import android.widget.EditText
 import android.widget.LinearLayout
@@ -70,6 +73,7 @@ class PinActivity : Activity() {
     }
 
     private val action: String get() = intent?.action ?: ACTION_VERIFY
+    private var biometricSignal: CancellationSignal? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -163,7 +167,32 @@ class PinActivity : Activity() {
                 finish()
             })
         } else {
-            root.addView(action(getString(R.string.pin_unlock), true) {
+            // Biometric unlock (API 28+, only when enrolled biometric is available)
+            if (Build.VERSION.SDK_INT >= 28 && BiometricHelper.isAvailable(this)) {
+                root.addView(action(getString(R.string.biometric_unlock), true) {
+                    biometricSignal?.cancel()
+                    biometricSignal = BiometricHelper.prompt(
+                        activity = this,
+                        title = getString(R.string.pin_title),
+                        subtitle = getString(R.string.biometric_subtitle),
+                        cancel = getString(R.string.cancel),
+                        onSuccess = {
+                            setResult(RESULT_OK)
+                            finish()
+                        },
+                        onFailure = { msg ->
+                            Toast.makeText(this, msg.ifEmpty { getString(R.string.biometric_failed) },
+                                Toast.LENGTH_SHORT).show()
+                        }
+                    )
+                })
+                root.addSpace(this, 12)
+                root.addView(label(getString(R.string.or_use_pin), 13f, Palette.MUTED).apply {
+                    gravity = Gravity.CENTER
+                    setPadding(0, 0, 0, dp(8))
+                })
+            }
+            root.addView(action(getString(R.string.pin_unlock), false) {
                 val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
                 val remaining = throttleSeconds(prefs)
                 if (remaining > 0) {
@@ -194,6 +223,11 @@ class PinActivity : Activity() {
 
         setContentView(root)
         pinField.requestFocus()
+    }
+
+    override fun onDestroy() {
+        biometricSignal?.cancel()
+        super.onDestroy()
     }
 
     override fun onBackPressed() {
