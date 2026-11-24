@@ -141,5 +141,24 @@
     <string name="pin_protection">حماية برمز PIN</string>
     <string name="pin_protection_desc">طلب رمز PIN لفتح Erthi Note</string>
     <string name="settings_section_security">الأمان</string>
+    <string name="settings_section_appearance">المظهر</string>
+    <string name="settings_dark_theme">المظهر الداكن</string>
+    <string name="settings_dark_theme_desc">التبديل بين المظهر الداكن والفاتح</string>
     <string name="export_docx">مستند Word (DOCX)</string>
+    <string name="highlight_format">تظليل</string>
+    <string name="align_left">محاذاة لليسار</string>
+    <string name="align_center">توسيط</string>
+    <string name="font_picker">الخط</string>
+    <string name="opacity_slider">الشفافية</string>
+    <string name="find_replace">بحث واستبدال</string>
+    <string name="favorite_note">المفضلة</string>
+    <string name="unfavorite_note">إزالة من المفضلة</string>
+    <string name="archive_note">أرشفة</string>
+    <string name="unarchive_note">استعادة من الأرشيف</string>
+    <string name="edit_tags">تعديل الوسوم</string>
+    <string name="tags_hint">وسوم مفصولة بفواصل</string>
+    <string name="view_archived">الملاحظات المؤرشفة</string>
+    <string name="view_favorites">المفضلات</string>
+    <string name="toggle_rtl">تبديل اليمين لليسار/اليسار لليمين</string>
+    <string name="pin_throttle">محاولات كثيرة. أعد المحاولة بعد %d ثانية.</string>
 </resources>

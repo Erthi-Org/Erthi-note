@@ -759,11 +759,18 @@ class FloatingNoteService : Service() {
             android.R.style.Theme_Material_Dialog_MinWidth)
             .setTitle(getString(R.string.font_picker))
             .setItems(Array(fonts.size) { fonts[it].displayName }) { _, i ->
-                val family = fonts[i].familyName
+                val entry = fonts[i]
                 val activeEd = (editors[activeNoteId] ?: editors.values.lastOrNull())?.input ?: return@setItems
                 val start = activeEd.selectionStart.coerceAtLeast(0)
                 val end = activeEd.selectionEnd.coerceAtLeast(start)
-                activeEd.text?.let { t -> RichNotes.fontFamily(t, start, end, family) }
+                activeEd.text?.let { t ->
+                    if (entry.resId != null || entry.isCustom) {
+                        val tf = FontManager.loadTypeface(ctx, entry)
+                        RichNotes.customFont(t, start, end, entry.familyName, tf)
+                    } else {
+                        RichNotes.fontFamily(t, start, end, entry.familyName)
+                    }
+                }
             }
             .create()
         dialog.window?.setType(android.view.WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY)

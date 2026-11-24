@@ -63,12 +63,18 @@ object RichNotes {
     fun serialize(body: CharSequence): String {
         val ssb = SpannableStringBuilder(body)
         val html = Html.toHtml(ssb, Html.TO_HTML_PARAGRAPH_LINES_INDIVIDUAL)
-        // Append font spans that Html.toHtml encodes as <font face="…"> but fromHtml ignores
-        val fonts = ssb.getSpans(0, ssb.length, TypefaceSpan::class.java).mapNotNull { span ->
+        // Collect both standard TypefaceSpan and CustomTypefaceSpan family names for persistence
+        val typefaceFonts = ssb.getSpans(0, ssb.length, TypefaceSpan::class.java).mapNotNull { span ->
             val f = span.family ?: return@mapNotNull null
             if (f.isBlank()) return@mapNotNull null
             Triple(ssb.getSpanStart(span), ssb.getSpanEnd(span), f)
         }
+        val customFonts = ssb.getSpans(0, ssb.length, CustomTypefaceSpan::class.java).mapNotNull { span ->
+            val f = span.familyName
+            if (f.isBlank()) return@mapNotNull null
+            Triple(ssb.getSpanStart(span), ssb.getSpanEnd(span), f)
+        }
+        val fonts = typefaceFonts + customFonts
         if (fonts.isEmpty()) return html
         val comment = fonts.joinToString(",", prefix = "<!-- erthi-fonts:[", postfix = "] -->") { (s, e, f) ->
             "{\"s\":$s,\"e\":$e,\"f\":\"${f.replace("\"", "\\\"")}\"}"
@@ -223,6 +229,12 @@ object RichNotes {
             Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
     }
 
+    /** Apply a downloadable or user-imported font backed by an actual Typeface object. */
+    fun customFont(editable: Editable, start: Int, end: Int, family: String, typeface: Typeface) {
+        if (end > start) editable.setSpan(CustomTypefaceSpan(typeface, family), start, end,
+            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+    }
+
     fun absoluteSize(editable: Editable, start: Int, end: Int, sizeSp: Int) {
         if (end > start) editable.setSpan(AbsoluteSizeSpan(sizeSp, true), start, end,
             Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
@@ -243,7 +255,8 @@ object RichNotes {
         ForegroundColorSpan::class.java, BackgroundColorSpan::class.java,
         RelativeSizeSpan::class.java, AbsoluteSizeSpan::class.java,
         StyleSpan::class.java, UnderlineSpan::class.java, StrikethroughSpan::class.java,
-        TypefaceSpan::class.java, AlignmentSpan.Standard::class.java,
+        TypefaceSpan::class.java, CustomTypefaceSpan::class.java,
+        AlignmentSpan.Standard::class.java,
     )
 
     /** Clears formatting only within [start, end]; spans extending outside are preserved by clipping. */
@@ -271,6 +284,7 @@ object RichNotes {
         is UnderlineSpan -> UnderlineSpan()
         is StrikethroughSpan -> StrikethroughSpan()
         is TypefaceSpan -> TypefaceSpan(span.family ?: "")
+        is CustomTypefaceSpan -> CustomTypefaceSpan(span.typeface, span.familyName)
         is AlignmentSpan.Standard -> AlignmentSpan.Standard(span.alignment)
         else -> span
     }
