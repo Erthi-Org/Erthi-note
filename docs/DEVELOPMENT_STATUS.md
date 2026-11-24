@@ -28,11 +28,12 @@
 - Clear formatting (selection-scoped)
 - Undo / redo (per-window, isolated RichHistory)
 - Inline images (via ACTION_INSERT_IMAGE intent)
-- Font family picker (system + asset + downloadable + imported TTF/OTF)
+- Font family picker (system + downloadable + imported TTF/OTF)
 
 ### Font Engine
 - FontManager: FontEntry with displayName, familyName, assetPath, resId, Category
-- Offline-first: asset-bundled fonts via `Typeface.createFromAsset()`
+- Asset font loading supported via `Typeface.createFromAsset()` — no TTF/OTF files are
+  bundled in this release; `assets/fonts/` does not exist in the repository
 - System Arabic fonts: Noto Naskh Arabic, Noto Kufi Arabic (AOSP, no internet)
 - Downloadable: Cairo, Amiri, Noto Kufi, Tajawal, Reem Kufi, Playfair Display,
   EB Garamond, Montserrat (Google Fonts provider — requires GMS, falls back gracefully)
@@ -93,6 +94,8 @@
 - `0ba4cc4`: font picker with typeface previews + recently-used section
 - `98ce56a`: USE_BIOMETRIC permission + API 30 guard + DOCX/PDF Arabic RTL fix
   → LOCAL: compile ✓, lint 0 errors, unit tests ✓, APK 1.8 MB
+- pending: fix RichNotes.deserialize() — 3-case when block so unknown font families use
+  CustomTypefaceSpan (preserves name) rather than TypefaceSpan (name only); docs correction
 
 ---
 

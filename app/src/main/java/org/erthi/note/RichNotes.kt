@@ -50,11 +50,30 @@ object RichNotes {
         val parsed = Html.fromHtml(baseHtml, Html.FROM_HTML_MODE_COMPACT,
             Html.ImageGetter { src -> decodeDrawable(context, src, maxImageWidth) }, null)
         val ssb = SpannableStringBuilder(parsed)
-        // Re-apply font spans from supplementary comment
+        // Re-apply font spans — resolve through FontManager so downloadable/imported
+        // fonts get a real Typeface-backed CustomTypefaceSpan, not a name-only TypefaceSpan.
         FONT_COMMENT_RE.find(html)?.groupValues?.getOrNull(1)?.let { json ->
+            val catalog = FontManager.allFonts(context).associateBy { it.familyName }
             parseFontJson(json).forEach { (s, e, family) ->
-                if (s < e && e <= ssb.length) {
-                    ssb.setSpan(TypefaceSpan(family), s, e, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                if (s >= e || e > ssb.length) return@forEach
+                val entry = catalog[family]
+                when {
+                    entry != null && FontManager.needsCustomSpan(entry) -> {
+                        // Asset / downloadable / imported font: needs a real Typeface object
+                        val tf = FontManager.loadTypeface(context, entry)
+                        ssb.setSpan(CustomTypefaceSpan(tf, family), s, e, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                    }
+                    entry != null -> {
+                        // Known system font: TypefaceSpan is correct — Android resolves by name
+                        ssb.setSpan(TypefaceSpan(family), s, e, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                    }
+                    else -> {
+                        // Family not in current catalog (font deleted / app reinstalled).
+                        // Preserve the name in CustomTypefaceSpan so it can be re-resolved
+                        // if the font becomes available again, rather than silently dropping it.
+                        val tf = Typeface.create(family, Typeface.NORMAL)
+                        ssb.setSpan(CustomTypefaceSpan(tf, family), s, e, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                    }
                 }
             }
         }
