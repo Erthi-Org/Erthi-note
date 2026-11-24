@@ -17,15 +17,15 @@ object NoteArchive {
 
     fun export(notes: List<Note>, output: OutputStream) {
         require(notes.size <= MAX_NOTES) { "Too many notes" }
-        // Legacy format identifier preserved for backward-compatible restore of old backups.
-        val root = JSONObject().put("format", "nexvary-floating-note")
-            .put("version", VERSION)
-        val list = JSONArray()
-        notes.forEach { n ->
+        // Stream each note to avoid loading the entire archive into memory at once.
+        val writer = output.bufferedWriter(Charsets.UTF_8)
+        writer.write("""{"format":"nexvary-floating-note","version":1,"notes":[""")
+        var totalWritten = 50
+        notes.forEachIndexed { i, n ->
             require(n.body.length <= MAX_BODY) { "Note too large" }
             require(n.customTitle.length <= 250) { "Title too long" }
             require(n.richHtml.length <= MAX_BYTES) { "Rich note too large" }
-            list.put(JSONObject()
+            val noteJson = JSONObject()
                 .put("body", n.body)
                 .put("title", n.customTitle)
                 .put("richHtml", n.richHtml)
@@ -34,14 +34,18 @@ object NoteArchive {
                 .put("updatedAt", n.updatedAt)
                 .put("color", n.color)
                 .put("pinned", n.pinned)
+                .put("archived", n.archived)
+                .put("favorite", n.favorite)
                 .put("tags", n.tags)
-                .put("reminderAt", n.reminderAt ?: JSONObject.NULL))
+                .put("reminderAt", n.reminderAt ?: JSONObject.NULL)
+                .toString()
+            totalWritten += noteJson.length + 1
+            require(totalWritten <= MAX_BYTES) { "Archive too large" }
+            if (i > 0) writer.write(",")
+            writer.write(noteJson)
         }
-        root.put("notes", list)
-        val bytes = root.toString().toByteArray(Charsets.UTF_8)
-        require(bytes.size <= MAX_BYTES) { "Archive too large" }
-        output.write(bytes)
-        output.flush()
+        writer.write("]}")
+        writer.flush()
     }
 
     fun read(input: InputStream): List<Note> {
@@ -76,7 +80,8 @@ object NoteArchive {
             val color = item.getInt("color")
             require(color in NoteColors.backgrounds.indices) { "Invalid color" }
             val reminder = if (item.isNull("reminderAt")) null else item.getLong("reminderAt")
-            result.add(Note(-1, body, updated, color, item.getBoolean("pinned"), reminder, title, html, titleSize, titleInk, item.optString("tags", "")))
+                        result.add(Note(-1, body, updated, color, item.getBoolean("pinned"), reminder, title, html, titleSize, titleInk, item.optString("tags", ""),
+                item.optBoolean("archived", false), item.optBoolean("favorite", false)))
         }
         return result
     }

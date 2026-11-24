@@ -9,6 +9,7 @@ import android.widget.ScrollView
 import android.widget.TextView
 
 class SettingsActivity : Activity() {
+    private var pinToggle: android.widget.TextView? = null
 
     private lateinit var prefs: SharedPreferences
 
@@ -53,7 +54,7 @@ class SettingsActivity : Activity() {
         ) { prefs.edit().putBoolean("rtl_default", it).apply() })
 
         body.addView(sectionLabel(getString(R.string.settings_section_security)))
-        body.addView(toggleRow(
+        val pinRow = toggleRow(
             getString(R.string.pin_protection),
             getString(R.string.pin_protection_desc),
             PinActivity.isEnabled(this)
@@ -63,10 +64,14 @@ class SettingsActivity : Activity() {
                     android.content.Intent(this, PinActivity::class.java)
                         .setAction(PinActivity.ACTION_SETUP), 801)
             } else {
-                getSharedPreferences(PinActivity.PREFS_NAME, MODE_PRIVATE).edit()
-                    .remove(PinActivity.PREF_PIN_HASH).apply()
+                // Require the current PIN before disabling protection.
+                startActivityForResult(
+                    android.content.Intent(this, PinActivity::class.java)
+                        .setAction(PinActivity.ACTION_VERIFY), 802)
             }
-        })
+        }
+        pinToggle = pinRow.findViewWithTag<android.widget.TextView>("toggle")
+        body.addView(pinRow)
 
         body.addView(sectionLabel(getString(R.string.settings_section_backup)))
         body.addView(infoRow(getString(R.string.settings_backup_info)))
@@ -111,6 +116,31 @@ class SettingsActivity : Activity() {
         return row
     }
 
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: android.content.Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        when (requestCode) {
+            801 -> if (resultCode != RESULT_OK) {
+                // PIN setup was cancelled — revert the toggle back to OFF
+                pinToggle?.let { t ->
+                    t.text = getString(R.string.settings_off)
+                    t.setTextColor(Palette.MUTED)
+                    t.background = roundShape(Palette.PANEL, 12, Palette.BORDER)
+                }
+            }
+            802 -> if (resultCode == RESULT_OK) {
+                getSharedPreferences(PinActivity.PREFS_NAME, MODE_PRIVATE).edit()
+                    .remove(PinActivity.PREF_PIN_HASH).apply()
+            } else {
+                // Verification cancelled — revert toggle back to ON
+                pinToggle?.let { t ->
+                    t.text = getString(R.string.settings_on)
+                    t.setTextColor(Palette.MINT)
+                    t.background = roundShape(Palette.PANEL_LIGHT, 12, Palette.BORDER)
+                }
+            }
+        }
+    }
+
     private fun toggleRow(
         title: String, description: String,
         initialValue: Boolean, onChange: (Boolean) -> Unit
@@ -131,6 +161,7 @@ class SettingsActivity : Activity() {
 
         var state = initialValue
         val toggle = TextView(this).apply {
+            tag = "toggle"
             text = if (state) getString(R.string.settings_on) else getString(R.string.settings_off)
             textSize = 13f
             setTextColor(if (state) Palette.MINT else Palette.MUTED)

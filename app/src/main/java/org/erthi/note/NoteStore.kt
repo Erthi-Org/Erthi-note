@@ -16,7 +16,9 @@ data class Note(
     val richHtml: String = "",
     val titleSizeSp: Int = 20,
     val titleInk: Int = 0,
-    val tags: String = ""
+    val tags: String = "",
+    val archived: Boolean = false,
+    val favorite: Boolean = false
 ) {
     val title: String get() = customTitle.ifBlank { NoteText.title(body) }
 }
@@ -43,13 +45,13 @@ object NoteColors {
 
 /** Versioned migrations preserve all existing user notes, including 0.1.0 databases. */
 class NoteStore(context: Context) :
-    SQLiteOpenHelper(context.applicationContext, "floating_notes.db", null, 7) {
+    SQLiteOpenHelper(context.applicationContext, "floating_notes.db", null, 8) {
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL(
             "CREATE TABLE notes (id INTEGER PRIMARY KEY AUTOINCREMENT, " +
                 "body TEXT NOT NULL, updated_at INTEGER NOT NULL, " +
                 "color INTEGER NOT NULL DEFAULT 0, pinned INTEGER NOT NULL DEFAULT 0, " +
-                "reminder_at INTEGER, title TEXT NOT NULL DEFAULT '', rich_html TEXT NOT NULL DEFAULT '', deleted_at INTEGER, title_size INTEGER NOT NULL DEFAULT 20, title_ink INTEGER NOT NULL DEFAULT 0, tags TEXT NOT NULL DEFAULT '')"
+                "reminder_at INTEGER, title TEXT NOT NULL DEFAULT '', rich_html TEXT NOT NULL DEFAULT '', deleted_at INTEGER, title_size INTEGER NOT NULL DEFAULT 20, title_ink INTEGER NOT NULL DEFAULT 0, tags TEXT NOT NULL DEFAULT '', archived_at INTEGER, favorite INTEGER NOT NULL DEFAULT 0)"
         )
         db.execSQL("CREATE INDEX notes_updated_idx ON notes(updated_at DESC)")
     }
@@ -75,6 +77,10 @@ class NoteStore(context: Context) :
         }
         if (oldVersion < 7) {
             db.execSQL("ALTER TABLE notes ADD COLUMN tags TEXT NOT NULL DEFAULT ''")
+        }
+        if (oldVersion < 8) {
+            db.execSQL("ALTER TABLE notes ADD COLUMN archived_at INTEGER")
+            db.execSQL("ALTER TABLE notes ADD COLUMN favorite INTEGER NOT NULL DEFAULT 0")
         }
     }
 
@@ -131,6 +137,30 @@ class NoteStore(context: Context) :
     fun setTags(id: Long, tags: String): Boolean =
         change(id, ContentValues().apply { put("tags", tags.take(500)) })
 
+    fun setFavorite(id: Long, favorite: Boolean): Boolean =
+        change(id, ContentValues().apply { put("favorite", if (favorite) 1 else 0) })
+
+    fun setArchived(id: Long, archived: Boolean): Boolean =
+        writableDatabase.update("notes",
+            ContentValues().apply {
+                if (archived) put("archived_at", System.currentTimeMillis())
+                else putNull("archived_at")
+            },
+            "id = ? AND deleted_at IS NULL", arrayOf(id.toString())) > 0
+
+    fun allArchived(): List<Note> {
+        val result = mutableListOf<Note>()
+        readableDatabase.query("notes", columns, "archived_at IS NOT NULL AND deleted_at IS NULL",
+            null, null, null, "archived_at DESC, id DESC")
+            .use { c -> while (c.moveToNext()) result.add(row(c)) }
+        return result
+    }
+
+    fun restoreArchived(id: Long): Boolean =
+        writableDatabase.update("notes",
+            ContentValues().apply { putNull("archived_at") },
+            "id = ? AND archived_at IS NOT NULL", arrayOf(id.toString())) > 0
+
 
     fun setReminder(id: Long, at: Long?): Boolean =
         change(id, ContentValues().apply {
@@ -161,11 +191,12 @@ class NoteStore(context: Context) :
         return if (count == 1) get(last.id) else null
     }
 
-    private val columns = arrayOf("id", "body", "updated_at", "color", "pinned", "reminder_at", "title", "rich_html", "title_size", "title_ink", "tags")
+    private val columns = arrayOf("id", "body", "updated_at", "color", "pinned", "reminder_at", "title", "rich_html", "title_size", "title_ink", "tags", "archived_at", "favorite")
 
     private fun row(c: android.database.Cursor) = Note(
         c.getLong(0), c.getString(1), c.getLong(2), NoteColors.valid(c.getInt(3)),
-        c.getInt(4) != 0, if (c.isNull(5)) null else c.getLong(5), c.getString(6), c.getString(7), c.getInt(8), c.getInt(9), c.getString(10)
+        c.getInt(4) != 0, if (c.isNull(5)) null else c.getLong(5), c.getString(6), c.getString(7), c.getInt(8), c.getInt(9), c.getString(10),
+        !c.isNull(11), c.getInt(12) != 0
     )
 
     fun get(id: Long): Note? {
@@ -179,8 +210,8 @@ class NoteStore(context: Context) :
     fun all(): List<Note> {
         val result = mutableListOf<Note>()
         readableDatabase.query(
-            "notes", columns, "deleted_at IS NULL", null, null, null,
-            "pinned DESC, updated_at DESC, id DESC"
+            "notes", columns, "deleted_at IS NULL AND archived_at IS NULL", null, null, null,
+            "favorite DESC, pinned DESC, updated_at DESC, id DESC"
         ).use { c -> while (c.moveToNext()) result.add(row(c)) }
         return result
     }
@@ -229,6 +260,7 @@ class NoteStore(context: Context) :
                     put("title_size", n.titleSizeSp.coerceIn(14, 36))
                     put("title_ink", n.titleInk)
                     put("tags", n.tags.take(500))
+                    put("favorite", if (n.favorite) 1 else 0)
                     put("updated_at", n.updatedAt)
                     put("color", NoteColors.valid(n.color))
                     put("pinned", if (n.pinned) 1 else 0)
