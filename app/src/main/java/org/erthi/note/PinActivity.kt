@@ -23,7 +23,7 @@ class PinActivity : Activity() {
         const val PREFS_NAME = "erthi_pin"
 
         fun isEnabled(activity: Activity): Boolean =
-            activity.getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+            activity.getSharedPreferences(PREFS_NAME, android.content.Context.MODE_PRIVATE)
                 .getString(PREF_PIN_HASH, null) != null
 
         fun hash(pin: String): String {
