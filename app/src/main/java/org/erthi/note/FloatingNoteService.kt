@@ -571,6 +571,15 @@ class FloatingNoteService : Service() {
         command("⇄", getString(R.string.toggle_rtl)) {
             toggleRtlLtr()
         }
+        command("•", getString(R.string.bullet_list)) {
+            applySpanEdit { ed, from, to -> RichNotes.bulletList(ed, from, to) }
+        }
+        command("1.", getString(R.string.numbered_list)) {
+            applySpanEdit { ed, from, to -> RichNotes.numberedList(ed, from, to) }
+        }
+        command("🔗", getString(R.string.insert_link)) {
+            showInsertLink()
+        }
         tools.addView(icon(R.drawable.ic_clear_format, getString(R.string.clear_formatting),
             Palette.PANEL_LIGHT, 38) {
             applySpanEdit { ed, from, to -> RichNotes.clearSpans(ed, from, to) }
@@ -878,6 +887,46 @@ class FloatingNoteService : Service() {
                     matchStart = idx
                 }
             }
+            .create().also { dialog ->
+                dialog.window?.setType(android.view.WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY)
+                dialog.show()
+            }
+    }
+
+        private fun showInsertLink() {
+        val ctx = this
+        val activeSession = editors[activeNoteId] ?: editors.values.lastOrNull() ?: return
+        val ed = activeSession.input
+        val urlField = android.widget.EditText(ctx).apply {
+            hint = getString(R.string.link_url_hint)
+            setSingleLine()
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or
+                android.text.InputType.TYPE_TEXT_VARIATION_URI
+            setPadding(dp(16), dp(8), dp(16), dp(8))
+        }
+        val layout = android.widget.LinearLayout(ctx).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding(dp(16), dp(8), dp(16), dp(8))
+            addView(urlField)
+        }
+        android.app.AlertDialog.Builder(ctx, android.R.style.Theme_Material_Dialog_MinWidth)
+            .setTitle(getString(R.string.insert_link))
+            .setView(layout)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                val url = urlField.text.toString().trim()
+                if (url.isEmpty()) return@setPositiveButton
+                val text = ed.text ?: return@setPositiveButton
+                val start = ed.selectionStart.coerceAtLeast(0)
+                val end = ed.selectionEnd.coerceAtLeast(start)
+                val effectiveEnd = if (end > start) end else {
+                    // No selection: insert URL as link text too
+                    text.insert(start, url)
+                    start + url.length
+                }
+                activeSession.history.record(activeSession.titleInput.text.toString(), text)
+                RichNotes.hyperlink(text, start, effectiveEnd, url)
+            }
+            .setNegativeButton(android.R.string.cancel, null)
             .create().also { dialog ->
                 dialog.window?.setType(android.view.WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY)
                 dialog.show()

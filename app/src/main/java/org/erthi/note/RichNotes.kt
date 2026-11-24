@@ -21,6 +21,7 @@ import android.text.style.StyleSpan
 import android.text.style.StrikethroughSpan
 import android.text.style.TypefaceSpan
 import android.text.style.UnderlineSpan
+import android.text.style.URLSpan
 import android.graphics.Typeface
 import java.io.ByteArrayOutputStream
 import java.util.ArrayDeque
@@ -233,6 +234,49 @@ object RichNotes {
     fun customFont(editable: Editable, start: Int, end: Int, family: String, typeface: Typeface) {
         if (end > start) editable.setSpan(CustomTypefaceSpan(typeface, family), start, end,
             Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+    }
+
+    /** Insert or update a hyperlink on the selected range. */
+    fun hyperlink(editable: Editable, start: Int, end: Int, url: String) {
+        if (end > start) {
+            editable.getSpans(start, end, URLSpan::class.java).forEach { editable.removeSpan(it) }
+            editable.setSpan(URLSpan(url), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        }
+    }
+
+    /** Toggle a bullet list prefix on each line within [start, end]. */
+    fun bulletList(editable: Editable, start: Int, end: Int) {
+        val lineStart = editable.toString().lastIndexOf('\n', start - 1) + 1
+        val lineEnd = run {
+            val idx = editable.toString().indexOf('\n', end)
+            if (idx < 0) editable.length else idx
+        }
+        val section = editable.toString().substring(lineStart, lineEnd)
+        val lines = section.split('\n')
+        val allBulleted = lines.all { it.startsWith("• ") }
+        val newSection = lines.joinToString("\n") { line ->
+            if (allBulleted) line.removePrefix("• ") else "• $line"
+        }
+        editable.replace(lineStart, lineEnd, newSection)
+    }
+
+    /** Toggle a numbered list on each line within [start, end]. */
+    fun numberedList(editable: Editable, start: Int, end: Int) {
+        val numberedRe = Regex("""^\d+\.\s""")
+        val lineStart = editable.toString().lastIndexOf('\n', start - 1) + 1
+        val lineEnd = run {
+            val idx = editable.toString().indexOf('\n', end)
+            if (idx < 0) editable.length else idx
+        }
+        val section = editable.toString().substring(lineStart, lineEnd)
+        val lines = section.split('\n')
+        val allNumbered = lines.all { numberedRe.containsMatchIn(it) }
+        val newSection = if (allNumbered) {
+            lines.joinToString("\n") { numberedRe.replaceFirst(it, "") }
+        } else {
+            lines.mapIndexed { i, line -> "${i + 1}. $line" }.joinToString("\n")
+        }
+        editable.replace(lineStart, lineEnd, newSection)
     }
 
     fun absoluteSize(editable: Editable, start: Int, end: Int, sizeSp: Int) {

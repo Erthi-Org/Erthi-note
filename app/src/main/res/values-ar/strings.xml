@@ -161,4 +161,8 @@
     <string name="view_favorites">المفضلات</string>
     <string name="toggle_rtl">تبديل اليمين لليسار/اليسار لليمين</string>
     <string name="pin_throttle">محاولات كثيرة. أعد المحاولة بعد %d ثانية.</string>
+    <string name="bullet_list">قائمة نقطية</string>
+    <string name="numbered_list">قائمة مرقمة</string>
+    <string name="insert_link">إدراج رابط</string>
+    <string name="link_url_hint">https://</string>
 </resources>
