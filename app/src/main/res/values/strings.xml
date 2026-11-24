@@ -163,4 +163,5 @@
     <string name="tags_hint">Comma-separated tags</string>
     <string name="view_archived">Archived notes</string>
     <string name="view_favorites">Favourites</string>
+    <string name="toggle_rtl">Toggle RTL/LTR</string>
 </resources>

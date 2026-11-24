@@ -571,6 +571,9 @@ class FloatingNoteService : Service() {
         command("⌕", getString(R.string.find_replace)) {
             showFindReplace()
         }
+        command("⇄", getString(R.string.toggle_rtl)) {
+            toggleRtlLtr()
+        }
         tools.addView(icon(R.drawable.ic_clear_format, getString(R.string.clear_formatting),
             Palette.PANEL_LIGHT, 38) {
             applySpanEdit { ed, from, to -> RichNotes.clearSpans(ed, from, to) }
@@ -760,8 +763,8 @@ class FloatingNoteService : Service() {
         val dialog = android.app.AlertDialog.Builder(ctx,
             android.R.style.Theme_Material_Dialog_MinWidth)
             .setTitle(getString(R.string.font_picker))
-            .setItems(Array(fonts.size) { fonts[it].name }) { _, i ->
-                val family = fonts[i].name
+            .setItems(Array(fonts.size) { fonts[it].displayName }) { _, i ->
+                val family = fonts[i].familyName
                 currentEditor?.let { ed ->
                     val start = ed.selectionStart.coerceAtLeast(0)
                     val end = ed.selectionEnd.coerceAtLeast(start)
@@ -876,6 +879,16 @@ class FloatingNoteService : Service() {
                 dialog.window?.setType(android.view.WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY)
                 dialog.show()
             }
+    }
+
+        private fun toggleRtlLtr() {
+        val ed = currentEditor ?: return
+        val current = ed.textDirection
+        ed.textDirection = if (current == android.view.View.TEXT_DIRECTION_RTL)
+            android.view.View.TEXT_DIRECTION_LTR
+        else
+            android.view.View.TEXT_DIRECTION_RTL
+        ed.invalidate()
     }
 
         private fun addWindow(view: View, params: WindowManager.LayoutParams): Boolean {
