@@ -113,7 +113,7 @@
     <string name="about_erthi">About Erthi</string>
     <string name="settings_section_appearance">Appearance</string>
     <string name="settings_dark_theme">Dark theme</string>
-    <string name="settings_dark_theme_desc">Use dark colors throughout the app</string>
+    <string name="settings_dark_theme_desc">Switch between dark and light appearance</string>
     <string name="settings_section_editor">Editor</string>
     <string name="settings_section_backup">Backup</string>
     <string name="settings_section_about">About</string>
@@ -151,9 +151,6 @@
     <string name="align_center">Align center</string>
     <string name="font_picker">Font</string>
     <string name="opacity_slider">Opacity</string>
-    <string name="settings_section_appearance">Appearance</string>
-    <string name="settings_dark_theme">Dark theme</string>
-    <string name="settings_dark_theme_desc">Switch between dark and light appearance</string>
     <string name="find_replace">Find &amp; Replace</string>
     <string name="favorite_note">Favourite</string>
     <string name="unfavorite_note">Unfavourite</string>

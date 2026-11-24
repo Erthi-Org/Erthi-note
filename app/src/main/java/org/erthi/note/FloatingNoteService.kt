@@ -40,10 +40,7 @@ import kotlin.math.min
  * No accessibility service, screen reading, or network access is used.
  */
 class FloatingNoteService : Service() {
-    private var currentEditor: android.widget.EditText? = null
     private var currentCard: android.view.View? = null
-    private var currentNoteTitle: String = ""
-    private var editorHistory: RichHistory = RichHistory()
     companion object {
         const val ACTION_START = "org.erthi.note.START"
         const val ACTION_OPEN = "org.erthi.note.OPEN"
@@ -64,7 +61,8 @@ class FloatingNoteService : Service() {
         val view: LinearLayout,
         val input: EditText,
         val titleInput: EditText,
-        val params: WindowManager.LayoutParams
+        val params: WindowManager.LayoutParams,
+        val history: RichHistory = RichHistory()
     )
     // Every open note owns its window and save callback; switching notes never discards edits.
     private val editors = linkedMapOf<Long, EditorSession>()
@@ -377,8 +375,7 @@ class FloatingNoteService : Service() {
             isSingleLine = false
             minLines = 8
         }
-        editorHistory = RichHistory()
-        val history = editorHistory
+        val history = RichHistory()
         var restoring = false
         fun updateHeading() {
             heading.text = titleInput.text.toString().trim()
@@ -665,10 +662,8 @@ class FloatingNoteService : Service() {
         }
         card.alpha = savedAlpha
         currentCard = card
-        currentEditor = input
-        currentNoteTitle = titleInput.text.toString()
         if (!addWindow(card, p)) return
-        editors[noteId] = EditorSession(card, input, titleInput, p)
+        editors[noteId] = EditorSession(card, input, titleInput, p, history)
         keepBubbleAboveEditor()
         input.setOnFocusChangeListener { _, focused ->
             if (focused) activeNoteId = noteId
@@ -765,11 +760,10 @@ class FloatingNoteService : Service() {
             .setTitle(getString(R.string.font_picker))
             .setItems(Array(fonts.size) { fonts[it].displayName }) { _, i ->
                 val family = fonts[i].familyName
-                currentEditor?.let { ed ->
-                    val start = ed.selectionStart.coerceAtLeast(0)
-                    val end = ed.selectionEnd.coerceAtLeast(start)
-                    ed.text?.let { t -> RichNotes.fontFamily(t, start, end, family) }
-                }
+                val activeEd = (editors[activeNoteId] ?: editors.values.lastOrNull())?.input ?: return@setItems
+                val start = activeEd.selectionStart.coerceAtLeast(0)
+                val end = activeEd.selectionEnd.coerceAtLeast(start)
+                activeEd.text?.let { t -> RichNotes.fontFamily(t, start, end, family) }
             }
             .create()
         dialog.window?.setType(android.view.WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY)
@@ -818,7 +812,9 @@ class FloatingNoteService : Service() {
 
         private fun showFindReplace() {
         val ctx = this
-        val ed = currentEditor ?: return
+        val activeSession = editors[activeNoteId] ?: editors.values.lastOrNull() ?: return
+        val ed = activeSession.input
+        val sessionHistory = activeSession.history
         val layout = android.widget.LinearLayout(ctx).apply {
             orientation = android.widget.LinearLayout.VERTICAL
             setPadding(dp(16), dp(8), dp(16), dp(8))
@@ -844,7 +840,7 @@ class FloatingNoteService : Service() {
                 val full = text.toString()
                 val idx = full.indexOf(needle, (matchStart + 1).coerceAtLeast(0))
                 if (idx >= 0) {
-                    editorHistory.record(currentNoteTitle, text)
+                    sessionHistory.record(activeSession.titleInput.text.toString(), text)
                     text.replace(idx, idx + needle.length, replacement)
                     matchStart = idx
                 }
@@ -858,7 +854,7 @@ class FloatingNoteService : Service() {
                 var count = 0
                 var idx = str.indexOf(needle)
                 while (idx >= 0) {
-                    editorHistory.record(currentNoteTitle, text)
+                    sessionHistory.record(activeSession.titleInput.text.toString(), text)
                     text.replace(idx, idx + needle.length, replacement)
                     str = text.toString()
                     idx = str.indexOf(needle, idx + replacement.length)
@@ -882,7 +878,7 @@ class FloatingNoteService : Service() {
     }
 
         private fun toggleRtlLtr() {
-        val ed = currentEditor ?: return
+        val ed = (editors[activeNoteId] ?: editors.values.lastOrNull())?.input ?: return
         val current = ed.textDirection
         ed.textDirection = if (current == android.view.View.TEXT_DIRECTION_RTL)
             android.view.View.TEXT_DIRECTION_LTR
