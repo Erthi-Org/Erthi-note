@@ -1,4 +1,4 @@
-package com.fgmachines.fgnote
+package org.erthi.note
 
 import android.content.ContentValues
 import android.content.Context

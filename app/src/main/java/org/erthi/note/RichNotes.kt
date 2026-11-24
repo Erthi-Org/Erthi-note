@@ -1,4 +1,4 @@
-package com.fgmachines.fgnote
+package org.erthi.note
 
 import android.content.Context
 import android.graphics.Bitmap

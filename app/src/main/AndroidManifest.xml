@@ -24,7 +24,7 @@
         </activity>
         <!-- An opt-in Quick Settings tile alongside Wi-Fi, Hotspot, and Bluetooth. -->
         <service
-            android:name=".FGNoteTileService"
+            android:name=".ErthiNoteTileService"
             android:label="@string/quick_tile_label"
             android:icon="@drawable/ic_quick_tile"
             android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"

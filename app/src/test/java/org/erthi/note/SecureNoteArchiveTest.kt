@@ -1,4 +1,4 @@
-package com.fgmachines.fgnote
+package org.erthi.note
 
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals

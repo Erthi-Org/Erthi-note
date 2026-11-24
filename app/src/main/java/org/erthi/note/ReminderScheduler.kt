@@ -1,4 +1,4 @@
-package com.fgmachines.fgnote
+package org.erthi.note
 
 import android.Manifest
 import android.app.AlarmManager

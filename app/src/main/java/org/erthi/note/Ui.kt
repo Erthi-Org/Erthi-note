@@ -1,4 +1,4 @@
-package com.fgmachines.fgnote
+package org.erthi.note
 
 import android.content.Context
 import android.graphics.Color
@@ -53,11 +53,14 @@ internal fun Context.icon(
     drawable: Int,
     label: String,
     tintBack: Int = Palette.PANEL_LIGHT,
+    tintIcon: Int? = null,
     size: Int = 44,
     click: () -> Unit
 ): ImageView = ImageView(this).apply {
     setImageResource(drawable)
-    imageTintList = android.content.res.ColorStateList.valueOf(Palette.MINT)
+    if (tintIcon != null) {
+        imageTintList = android.content.res.ColorStateList.valueOf(tintIcon)
+    }
     scaleType = ImageView.ScaleType.FIT_CENTER
     val p = dp(11)
     setPadding(p, p, p, p)

@@ -1,4 +1,4 @@
-package com.fgmachines.fgnote
+package org.erthi.note
 
 import android.Manifest
 import android.app.Activity
@@ -129,7 +129,7 @@ class MainActivity : Activity() {
             val manager = getSystemService(StatusBarManager::class.java)
             try {
                 manager.requestAddTileService(
-                    ComponentName(this, FGNoteTileService::class.java),
+                    ComponentName(this, ErthiNoteTileService::class.java),
                     getString(R.string.quick_tile_label),
                     Icon.createWithResource(this, R.drawable.ic_quick_tile),
                     mainExecutor
@@ -251,7 +251,7 @@ class MainActivity : Activity() {
         stopService(Intent(this, FloatingNoteService::class.java))
         getSharedPreferences("overlay_state", MODE_PRIVATE).edit().putBoolean("active", false).apply()
         render()
-        FGNoteTileService.refresh(this)
+        ErthiNoteTileService.refresh(this)
     }
 
     private fun requestOverlay() {
@@ -317,7 +317,7 @@ class MainActivity : Activity() {
             startActivityForResult(Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
                 addCategory(Intent.CATEGORY_OPENABLE)
                 type = "application/octet-stream"
-                putExtra(Intent.EXTRA_TITLE, "fg-note-protected-notes.nfn")
+                putExtra(Intent.EXTRA_TITLE, "erthi-note-protected-notes.nfn")
             }, REQUEST_SECURE_EXPORT)
         }, LinearLayout.LayoutParams(0, -2, 1f))
         secureBar.addView(android.view.View(this), LinearLayout.LayoutParams(dp(10), 1))

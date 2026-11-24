@@ -1,4 +1,4 @@
-package com.fgmachines.fgnote
+package org.erthi.note
 
 import android.app.AppOpsManager
 import android.app.Notification
@@ -117,7 +117,7 @@ class FloatingNoteService : Service() {
         if (bubble == null && !createBubble()) return START_NOT_STICKY
         getSharedPreferences("overlay_state", MODE_PRIVATE)
             .edit().putBoolean("active", true).apply()
-        FGNoteTileService.refresh(this)
+        ErthiNoteTileService.refresh(this)
 
         when (intent?.action) {
             ACTION_INSERT_IMAGE -> {
@@ -740,7 +740,7 @@ class FloatingNoteService : Service() {
         bubbleParams = null
         getSharedPreferences("overlay_state", MODE_PRIVATE)
             .edit().putBoolean("active", false).apply()
-        FGNoteTileService.refresh(this)
+        ErthiNoteTileService.refresh(this)
         notes.close()
         super.onDestroy()
     }

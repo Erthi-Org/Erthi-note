@@ -1,4 +1,4 @@
-package com.fgmachines.fgnote
+package org.erthi.note
 
 /** Light Markdown-formatting shortcuts that keep note files plain and portable. */
 object NoteFormatting {

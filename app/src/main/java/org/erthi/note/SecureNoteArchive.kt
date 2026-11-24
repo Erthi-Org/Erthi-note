@@ -1,4 +1,4 @@
-package com.fgmachines.fgnote
+package org.erthi.note
 
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream

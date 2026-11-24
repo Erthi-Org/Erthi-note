@@ -1,4 +1,4 @@
-package com.fgmachines.fgnote
+package org.erthi.note
 
 import android.annotation.SuppressLint
 import android.app.ActivityManager
@@ -18,7 +18,7 @@ import android.util.Log
  * or background display privileges. The system controls whether/where the tile
  * appears; users choose its order (e.g. next to Personal Hotspot).
  */
-class FGNoteTileService : TileService() {
+class ErthiNoteTileService : TileService() {
     override fun onStartListening() {
         super.onStartListening()
         updateAppearance(serviceRunning(this))
@@ -92,7 +92,7 @@ class FGNoteTileService : TileService() {
 
         fun refresh(context: Context) {
             try {
-                requestListeningState(context, ComponentName(context, FGNoteTileService::class.java))
+                requestListeningState(context, ComponentName(context, ErthiNoteTileService::class.java))
             } catch (error: RuntimeException) {
                 // User might not have installed the tile yet.
                 Log.d("ErthiTile", "Tile not available for refresh", error)

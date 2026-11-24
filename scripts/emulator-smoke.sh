@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 mkdir -p screenshots
-PACKAGE=com.fgmachines.fgnote
+PACKAGE=org.erthi.note
 
 tap_accessible() {
   local target="$1"
-  adb shell uiautomator dump /sdcard/nexvary-window.xml
-  adb pull /sdcard/nexvary-window.xml /tmp/nexvary-window.xml >/dev/null
+  adb shell uiautomator dump /sdcard/erthi-note-window.xml
+  adb pull /sdcard/erthi-note-window.xml /tmp/erthi-note-window.xml >/dev/null
   TARGET="$target" python3 - <<'PY'
 import os
 import re
@@ -14,7 +14,7 @@ import subprocess
 import xml.etree.ElementTree as ET
 
 target = os.environ["TARGET"]
-root = ET.parse("/tmp/nexvary-window.xml").getroot()
+root = ET.parse("/tmp/erthi-note-window.xml").getroot()
 for node in root.iter("node"):
     if node.attrib.get("text", "").casefold() != target.casefold() and node.attrib.get("content-desc", "").casefold() != target.casefold():
         continue
@@ -46,9 +46,9 @@ adb exec-out screencap -p > screenshots/01-home.png
 # Back-navigation must ask for save confirmation, not silently exit.
 adb shell input keyevent 4
 sleep 2
-adb shell uiautomator dump /sdcard/fg-note-back.xml
-adb pull /sdcard/fg-note-back.xml /tmp/fg-note-back.xml >/dev/null
-grep -q "Save notes before exit?" /tmp/fg-note-back.xml
+adb shell uiautomator dump /sdcard/erthi-note-back.xml
+adb pull /sdcard/erthi-note-back.xml /tmp/erthi-note-back.xml >/dev/null
+grep -q "Save notes before exit?" /tmp/erthi-note-back.xml
 tap_accessible "Keep editing"
 sleep 2
 
