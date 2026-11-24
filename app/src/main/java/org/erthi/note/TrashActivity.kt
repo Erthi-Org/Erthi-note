@@ -17,7 +17,9 @@ class TrashActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.decorView.setBackgroundColor(Palette.BACK)
-        window.insetsController?.hide(WindowInsets.Type.systemBars())
+        if (android.os.Build.VERSION.SDK_INT >= 30) {
+            window.insetsController?.hide(android.view.WindowInsets.Type.systemBars())
+        }
         database = NoteStore(this)
 
         val root = LinearLayout(this).apply {
