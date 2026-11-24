@@ -15,6 +15,7 @@ class SettingsActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Palette.init(getSharedPreferences("editor_prefs", MODE_PRIVATE))
         window.decorView.setBackgroundColor(Palette.BACK)
         if (android.os.Build.VERSION.SDK_INT >= 30) {
             window.insetsController?.hide(android.view.WindowInsets.Type.systemBars())
@@ -45,6 +46,17 @@ class SettingsActivity : Activity() {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(16), dp(16), dp(16), dp(32))
         }
+
+        body.addView(sectionLabel(getString(R.string.settings_section_appearance)))
+        body.addView(toggleRow(
+            getString(R.string.settings_dark_theme),
+            getString(R.string.settings_dark_theme_desc),
+            getSharedPreferences("editor_prefs", MODE_PRIVATE).getBoolean("dark_theme", true)
+        ) { dark ->
+            getSharedPreferences("editor_prefs", MODE_PRIVATE).edit().putBoolean("dark_theme", dark).apply()
+            Palette.applyTheme(dark)
+            recreate()
+        })
 
         body.addView(sectionLabel(getString(R.string.settings_section_editor)))
         body.addView(toggleRow(

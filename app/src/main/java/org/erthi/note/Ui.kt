@@ -17,24 +17,22 @@ import kotlin.math.roundToInt
  * All text/background pairs meet WCAG AA (4.5:1).
  */
 internal object Palette {
-    // Backgrounds
-    const val BACK        = 0xFF0A0A0A.toInt()
-    const val PANEL       = 0xFF1C1C1C.toInt()
-    const val PANEL_LIGHT = 0xFF242424.toInt()
+    var isDark = true
 
-    // Accent (Andalusian Gold)
-    const val MINT        = 0xFFC8A86E.toInt()
+    val BACK        get() = if (isDark) 0xFF0A0A0A.toInt() else 0xFFF5F3EF.toInt()
+    val PANEL       get() = if (isDark) 0xFF1C1C1C.toInt() else 0xFFEBE9E4.toInt()
+    val PANEL_LIGHT get() = if (isDark) 0xFF242424.toInt() else 0xFFDFDDD8.toInt()
+    val MINT        get() = if (isDark) 0xFFC8A86E.toInt() else 0xFF8B6914.toInt()
+    val WHITE       get() = if (isDark) 0xFFF0EDE8.toInt() else 0xFF1A1612.toInt()
+    val MUTED       get() = if (isDark) 0xFF787878.toInt() else 0xFF5A5651.toInt()
+    val RED         get() = if (isDark) 0xFFE05A5A.toInt() else 0xFFCC2222.toInt()
+    val BORDER      get() = if (isDark) 0xFF363636.toInt() else 0xFFCFCDC8.toInt()
+    val SILVER      get() = 0xFFB8B8B8.toInt()
 
-    // Typography
-    const val WHITE       = 0xFFF0EDE8.toInt()
-    const val MUTED       = 0xFF787878.toInt()
-
-    // Danger (muted red for dark bg)
-    const val RED         = 0xFFE05A5A.toInt()
-
-    // Borders (Metallic Silver)
-    const val BORDER      = 0xFF363636.toInt()
-    const val SILVER      = 0xFFB8B8B8.toInt()
+    fun applyTheme(dark: Boolean) { isDark = dark }
+    fun init(prefs: android.content.SharedPreferences) {
+        isDark = prefs.getBoolean("dark_theme", true)
+    }
 }
 
 internal fun Context.dp(value: Int): Int = (resources.displayMetrics.density * value).roundToInt()

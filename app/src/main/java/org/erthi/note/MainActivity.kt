@@ -60,6 +60,7 @@ class MainActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Palette.init(getSharedPreferences("editor_prefs", MODE_PRIVATE))
         database = NoteStore(this)
         if (savedInstanceState == null && PinActivity.isEnabled(this)) {
             startActivityForResult(
