@@ -155,4 +155,12 @@
     <string name="settings_dark_theme">Dark theme</string>
     <string name="settings_dark_theme_desc">Switch between dark and light appearance</string>
     <string name="find_replace">Find &amp; Replace</string>
+    <string name="favorite_note">Favourite</string>
+    <string name="unfavorite_note">Unfavourite</string>
+    <string name="archive_note">Archive</string>
+    <string name="unarchive_note">Restore from archive</string>
+    <string name="edit_tags">Edit tags</string>
+    <string name="tags_hint">Comma-separated tags</string>
+    <string name="view_archived">Archived notes</string>
+    <string name="view_favorites">Favourites</string>
 </resources>

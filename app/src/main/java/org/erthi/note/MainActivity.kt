@@ -394,6 +394,20 @@ class MainActivity : Activity() {
         if (toolsExpanded) {
             content.addSpace(this, 10)
             content.addView(archiveBar)
+        // Filter shortcut row
+        val filterBar = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(dp(8), 0, dp(8), 0)
+        }
+        filterBar.addView(action(getString(R.string.view_favorites), false) {
+            showFilteredNotes(favoritesOnly = true, archivedOnly = false)
+        }, LinearLayout.LayoutParams(-2, dp(32)).apply { rightMargin = dp(8) })
+        filterBar.addView(action(getString(R.string.view_archived), false) {
+            showFilteredNotes(favoritesOnly = false, archivedOnly = true)
+        }, LinearLayout.LayoutParams(-2, dp(32)))
+        content.addView(filterBar, LinearLayout.LayoutParams(-1, -2).apply {
+            setMargins(0, dp(4), 0, dp(4))
+        })
             content.addSpace(this, 10)
             content.addView(secureBar)
         }
@@ -420,7 +434,34 @@ class MainActivity : Activity() {
         root.requestFocus()
     }
 
-    private fun displayNotes() {
+    private fun showFilteredNotes(favoritesOnly: Boolean, archivedOnly: Boolean) {
+        val notes = if (archivedOnly) {
+            database.allArchived()
+        } else {
+            database.all().filter { if (favoritesOnly) it.favorite else true }
+        }
+        AlertDialog.Builder(this)
+            .setTitle(if (archivedOnly) getString(R.string.view_archived) else getString(R.string.view_favorites))
+            .setItems(Array(notes.size) { notes[it].customTitle.ifEmpty { notes[it].body.take(40) } }) { _, i ->
+                val n = notes[i]
+                if (archivedOnly) {
+                    AlertDialog.Builder(this)
+                        .setMessage(getString(R.string.unarchive_note))
+                        .setPositiveButton(android.R.string.ok) { _, _ ->
+                            database.restoreArchived(n.id)
+                            render()
+                        }
+                        .setNegativeButton(R.string.cancel, null)
+                        .show()
+                } else {
+                    start(FloatingNoteService.ACTION_OPEN, n.id)
+                }
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+        private fun displayNotes() {
         val parent = noteContainer ?: return
         parent.removeAllViews()
         val list = database.search(search)
@@ -489,6 +530,20 @@ class MainActivity : Activity() {
             database.setPinned(note.id, !note.pinned)
             displayNotes()
         })
+        val starIcon = if (note.favorite) R.drawable.ic_star_filled else R.drawable.ic_star
+        val starLabel = if (note.favorite) getString(R.string.unfavorite_note) else getString(R.string.favorite_note)
+        buttons.addView(icon(starIcon, starLabel, Palette.PANEL,
+            38) {
+            database.setFavorite(note.id, !note.favorite)
+            displayNotes()
+        })
+        buttons.addView(icon(R.drawable.ic_archive, getString(R.string.archive_note), Palette.PANEL,
+            38) {
+            database.setArchived(note.id, true)
+            displayNotes()
+        })
+        buttons.addView(icon(R.drawable.ic_tag, getString(R.string.edit_tags), Palette.PANEL,
+            38) { editTags(note) })
         buttons.addView(icon(R.drawable.ic_bell, getString(R.string.reminders), Palette.PANEL,
             38) { selectReminder(note) })
         buttons.addView(icon(R.drawable.ic_trash, getString(R.string.delete), Palette.PANEL,
@@ -590,7 +645,25 @@ class MainActivity : Activity() {
     }
 
 
-    private fun selectColor(note: Note) {
+    private fun editTags(note: Note) {
+        val input = android.widget.EditText(this).apply {
+            setText(note.tags)
+            hint = getString(R.string.tags_hint)
+            setSingleLine()
+        }
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.edit_tags))
+            .setView(input)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                val tags = input.text.toString().trim()
+                database.setTags(note.id, tags)
+                render()
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+        private fun selectColor(note: Note) {
         AlertDialog.Builder(this)
             .setTitle(R.string.note_color)
             .setSingleChoiceItems(
