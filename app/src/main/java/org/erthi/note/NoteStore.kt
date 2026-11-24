@@ -15,7 +15,8 @@ data class Note(
     val customTitle: String = "",
     val richHtml: String = "",
     val titleSizeSp: Int = 20,
-    val titleInk: Int = 0
+    val titleInk: Int = 0,
+    val tags: String = ""
 ) {
     val title: String get() = customTitle.ifBlank { NoteText.title(body) }
 }
@@ -42,13 +43,13 @@ object NoteColors {
 
 /** Versioned migrations preserve all existing user notes, including 0.1.0 databases. */
 class NoteStore(context: Context) :
-    SQLiteOpenHelper(context.applicationContext, "floating_notes.db", null, 6) {
+    SQLiteOpenHelper(context.applicationContext, "floating_notes.db", null, 7) {
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL(
             "CREATE TABLE notes (id INTEGER PRIMARY KEY AUTOINCREMENT, " +
                 "body TEXT NOT NULL, updated_at INTEGER NOT NULL, " +
                 "color INTEGER NOT NULL DEFAULT 0, pinned INTEGER NOT NULL DEFAULT 0, " +
-                "reminder_at INTEGER, title TEXT NOT NULL DEFAULT '', rich_html TEXT NOT NULL DEFAULT '', deleted_at INTEGER, title_size INTEGER NOT NULL DEFAULT 20, title_ink INTEGER NOT NULL DEFAULT 0)"
+                "reminder_at INTEGER, title TEXT NOT NULL DEFAULT '', rich_html TEXT NOT NULL DEFAULT '', deleted_at INTEGER, title_size INTEGER NOT NULL DEFAULT 20, title_ink INTEGER NOT NULL DEFAULT 0, tags TEXT NOT NULL DEFAULT '')"
         )
         db.execSQL("CREATE INDEX notes_updated_idx ON notes(updated_at DESC)")
     }
@@ -71,6 +72,9 @@ class NoteStore(context: Context) :
         if (oldVersion < 6) {
             db.execSQL("ALTER TABLE notes ADD COLUMN title_size INTEGER NOT NULL DEFAULT 20")
             db.execSQL("ALTER TABLE notes ADD COLUMN title_ink INTEGER NOT NULL DEFAULT 0")
+        }
+        if (oldVersion < 7) {
+            db.execSQL("ALTER TABLE notes ADD COLUMN tags TEXT NOT NULL DEFAULT ''")
         }
     }
 
@@ -124,6 +128,10 @@ class NoteStore(context: Context) :
     fun setPinned(id: Long, pinned: Boolean): Boolean =
         change(id, ContentValues().apply { put("pinned", if (pinned) 1 else 0) })
 
+    fun setTags(id: Long, tags: String): Boolean =
+        change(id, ContentValues().apply { put("tags", tags.take(500)) })
+
+
     fun setReminder(id: Long, at: Long?): Boolean =
         change(id, ContentValues().apply {
             if (at == null) putNull("reminder_at") else put("reminder_at", at)
@@ -153,11 +161,11 @@ class NoteStore(context: Context) :
         return if (count == 1) get(last.id) else null
     }
 
-    private val columns = arrayOf("id", "body", "updated_at", "color", "pinned", "reminder_at", "title", "rich_html", "title_size", "title_ink")
+    private val columns = arrayOf("id", "body", "updated_at", "color", "pinned", "reminder_at", "title", "rich_html", "title_size", "title_ink", "tags")
 
     private fun row(c: android.database.Cursor) = Note(
         c.getLong(0), c.getString(1), c.getLong(2), NoteColors.valid(c.getInt(3)),
-        c.getInt(4) != 0, if (c.isNull(5)) null else c.getLong(5), c.getString(6), c.getString(7), c.getInt(8), c.getInt(9)
+        c.getInt(4) != 0, if (c.isNull(5)) null else c.getLong(5), c.getString(6), c.getString(7), c.getInt(8), c.getInt(9), c.getString(10)
     )
 
     fun get(id: Long): Note? {
@@ -178,7 +186,7 @@ class NoteStore(context: Context) :
     }
 
     fun search(query: String): List<Note> =
-        if (query.isBlank()) all() else all().filter { NoteText.matches(it.body, query) || NoteText.matches(it.customTitle, query) }
+        if (query.isBlank()) all() else all().filter { NoteText.matches(it.body, query) || NoteText.matches(it.customTitle, query) || NoteText.matches(it.tags, query) }
 
     /**
      * Validate archive before calling. Use a transaction so failures never leave
@@ -223,6 +231,7 @@ class NoteStore(context: Context) :
                     put("rich_html", n.richHtml)
                     put("title_size", n.titleSizeSp.coerceIn(14, 36))
                     put("title_ink", n.titleInk)
+                    put("tags", n.tags.take(500))
                     put("updated_at", n.updatedAt)
                     put("color", NoteColors.valid(n.color))
                     put("pinned", if (n.pinned) 1 else 0)

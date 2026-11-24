@@ -34,6 +34,7 @@ object NoteArchive {
                 .put("updatedAt", n.updatedAt)
                 .put("color", n.color)
                 .put("pinned", n.pinned)
+                .put("tags", n.tags)
                 .put("reminderAt", n.reminderAt ?: JSONObject.NULL))
         }
         root.put("notes", list)
@@ -75,7 +76,7 @@ object NoteArchive {
             val color = item.getInt("color")
             require(color in NoteColors.backgrounds.indices) { "Invalid color" }
             val reminder = if (item.isNull("reminderAt")) null else item.getLong("reminderAt")
-            result.add(Note(-1, body, updated, color, item.getBoolean("pinned"), reminder, title, html, titleSize, titleInk))
+            result.add(Note(-1, body, updated, color, item.getBoolean("pinned"), reminder, title, html, titleSize, titleInk, item.optString("tags", "")))
         }
         return result
     }
