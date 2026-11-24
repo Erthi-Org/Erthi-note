@@ -40,6 +40,10 @@ import kotlin.math.min
  * No accessibility service, screen reading, or network access is used.
  */
 class FloatingNoteService : Service() {
+    private var currentEditor: android.widget.EditText? = null
+    private var currentCard: android.view.View? = null
+    private var currentNoteTitle: String = ""
+    private var editorHistory: RichHistory = RichHistory()
     companion object {
         const val ACTION_START = "org.erthi.note.START"
         const val ACTION_OPEN = "org.erthi.note.OPEN"
@@ -373,7 +377,8 @@ class FloatingNoteService : Service() {
             isSingleLine = false
             minLines = 8
         }
-        val history = RichHistory()
+        editorHistory = RichHistory()
+        val history = editorHistory
         var restoring = false
         fun updateHeading() {
             heading.text = titleInput.text.toString().trim()
@@ -541,6 +546,31 @@ class FloatingNoteService : Service() {
         command("T−", getString(R.string.text_size_smaller)) {
             applySpanEdit { ed, from, to -> RichNotes.fontSize(ed, from, to, 0.80f) }
         }
+        tools.addView(icon(R.drawable.ic_highlight, getString(R.string.highlight_format),
+            Palette.PANEL_LIGHT, 38) {
+            applySpanEdit { ed, from, to -> RichNotes.highlight(ed, from, to, 0xFFFFD700.toInt()) }
+        })
+        tools.addView(icon(R.drawable.ic_align_left, getString(R.string.align_left),
+            Palette.PANEL_LIGHT, 38) {
+            applySpanEdit { ed, from, to ->
+                RichNotes.align(ed, from, to, android.text.Layout.Alignment.ALIGN_NORMAL)
+            }
+        })
+        tools.addView(icon(R.drawable.ic_align_center, getString(R.string.align_center),
+            Palette.PANEL_LIGHT, 38) {
+            applySpanEdit { ed, from, to ->
+                RichNotes.align(ed, from, to, android.text.Layout.Alignment.ALIGN_CENTER)
+            }
+        })
+        command("F", getString(R.string.font_picker)) {
+            showFontPicker()
+        }
+        command("α", getString(R.string.opacity_slider)) {
+            showOpacitySlider()
+        }
+        command("⌕", getString(R.string.find_replace)) {
+            showFindReplace()
+        }
         tools.addView(icon(R.drawable.ic_clear_format, getString(R.string.clear_formatting),
             Palette.PANEL_LIGHT, 38) {
             applySpanEdit { ed, from, to -> RichNotes.clearSpans(ed, from, to) }
@@ -631,6 +661,9 @@ class FloatingNoteService : Service() {
             }
         }
         card.alpha = savedAlpha
+        currentCard = card
+        currentEditor = input
+        currentNoteTitle = titleInput.text.toString()
         if (!addWindow(card, p)) return
         editors[noteId] = EditorSession(card, input, titleInput, p)
         keepBubbleAboveEditor()
@@ -720,7 +753,132 @@ class FloatingNoteService : Service() {
     }
 
     /** Window-manager calls can fail when overlay access is revoked while a note is open. */
-    private fun addWindow(view: View, params: WindowManager.LayoutParams): Boolean {
+    private fun showFontPicker() {
+        val ctx = this
+        val fonts = FontManager.allFonts(ctx)
+        if (fonts.isEmpty()) return
+        val dialog = android.app.AlertDialog.Builder(ctx,
+            android.R.style.Theme_Material_Dialog_MinWidth)
+            .setTitle(getString(R.string.font_picker))
+            .setItems(Array(fonts.size) { fonts[it].name }) { _, i ->
+                val family = fonts[i].name
+                currentEditor?.let { ed ->
+                    val start = ed.selectionStart.coerceAtLeast(0)
+                    val end = ed.selectionEnd.coerceAtLeast(start)
+                    ed.text?.let { t -> RichNotes.fontFamily(t, start, end, family) }
+                }
+            }
+            .create()
+        dialog.window?.setType(android.view.WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY)
+        dialog.show()
+    }
+
+    private fun showOpacitySlider() {
+        val ctx = this
+        val prefs = getSharedPreferences("editor_opacity", MODE_PRIVATE)
+        val current = prefs.getFloat("alpha", 0.95f).coerceIn(0.3f, 1.0f)
+        val layout = android.widget.LinearLayout(ctx).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding(dp(24), dp(16), dp(24), dp(16))
+        }
+        val slider = android.widget.SeekBar(ctx).apply {
+            max = 70
+            progress = ((current - 0.3f) * 100).toInt()
+        }
+        val valueLabel = android.widget.TextView(ctx).apply {
+            text = "${(current * 100).toInt()}%"
+            gravity = android.view.Gravity.CENTER
+        }
+        slider.setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(sb: android.widget.SeekBar, p: Int, fromUser: Boolean) {
+                val alpha = 0.3f + p / 100f
+                valueLabel.text = "${(alpha * 100).toInt()}%"
+                currentCard?.alpha = alpha
+            }
+            override fun onStartTrackingTouch(sb: android.widget.SeekBar) {}
+            override fun onStopTrackingTouch(sb: android.widget.SeekBar) {
+                val alpha = 0.3f + sb.progress / 100f
+                prefs.edit().putFloat("alpha", alpha).apply()
+            }
+        })
+        layout.addView(valueLabel)
+        layout.addView(slider)
+        val dialog = android.app.AlertDialog.Builder(ctx,
+            android.R.style.Theme_Material_Dialog_MinWidth)
+            .setTitle(getString(R.string.opacity_slider))
+            .setView(layout)
+            .setPositiveButton(android.R.string.ok, null)
+            .create()
+        dialog.window?.setType(android.view.WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY)
+        dialog.show()
+    }
+
+        private fun showFindReplace() {
+        val ctx = this
+        val ed = currentEditor ?: return
+        val layout = android.widget.LinearLayout(ctx).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding(dp(16), dp(8), dp(16), dp(8))
+        }
+        fun field(hint: String) = android.widget.EditText(ctx).apply {
+            this.hint = hint
+            setSingleLine()
+            layout.addView(this, android.widget.LinearLayout.LayoutParams(-1, -2).apply {
+                setMargins(0, dp(4), 0, dp(4))
+            })
+        }
+        val findField = field("Find")
+        val replaceField = field("Replace with")
+        var matchStart = -1
+        android.app.AlertDialog.Builder(ctx, android.R.style.Theme_Material_Dialog_MinWidth)
+            .setTitle(getString(R.string.find_replace))
+            .setView(layout)
+            .setPositiveButton("Replace") { _, _ ->
+                val needle = findField.text.toString()
+                val replacement = replaceField.text.toString()
+                if (needle.isEmpty()) return@setPositiveButton
+                val text = ed.text ?: return@setPositiveButton
+                val full = text.toString()
+                val idx = full.indexOf(needle, (matchStart + 1).coerceAtLeast(0))
+                if (idx >= 0) {
+                    editorHistory.record(currentNoteTitle, text)
+                    text.replace(idx, idx + needle.length, replacement)
+                    matchStart = idx
+                }
+            }
+            .setNegativeButton("Replace All") { _, _ ->
+                val needle = findField.text.toString()
+                val replacement = replaceField.text.toString()
+                if (needle.isEmpty()) return@setNegativeButton
+                val text = ed.text ?: return@setNegativeButton
+                var str = text.toString()
+                var count = 0
+                var idx = str.indexOf(needle)
+                while (idx >= 0) {
+                    editorHistory.record(currentNoteTitle, text)
+                    text.replace(idx, idx + needle.length, replacement)
+                    str = text.toString()
+                    idx = str.indexOf(needle, idx + replacement.length)
+                    count++
+                }
+            }
+            .setNeutralButton("Find") { _, _ ->
+                val needle = findField.text.toString()
+                if (needle.isEmpty()) return@setNeutralButton
+                val full = ed.text?.toString() ?: return@setNeutralButton
+                val idx = full.indexOf(needle, (matchStart + 1).coerceAtLeast(0))
+                if (idx >= 0) {
+                    ed.setSelection(idx, idx + needle.length)
+                    matchStart = idx
+                }
+            }
+            .create().also { dialog ->
+                dialog.window?.setType(android.view.WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY)
+                dialog.show()
+            }
+    }
+
+        private fun addWindow(view: View, params: WindowManager.LayoutParams): Boolean {
         if (!Settings.canDrawOverlays(this)) {
             stopSelf()
             return false

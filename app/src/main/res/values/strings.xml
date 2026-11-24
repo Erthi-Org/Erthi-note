@@ -146,4 +146,13 @@
     <string name="pin_protection_desc">Require PIN to open Erthi Note</string>
     <string name="settings_section_security">Security</string>
     <string name="export_docx">Word document (DOCX)</string>
+    <string name="highlight_format">Highlight</string>
+    <string name="align_left">Align left</string>
+    <string name="align_center">Align center</string>
+    <string name="font_picker">Font</string>
+    <string name="opacity_slider">Opacity</string>
+    <string name="settings_section_appearance">Appearance</string>
+    <string name="settings_dark_theme">Dark theme</string>
+    <string name="settings_dark_theme_desc">Switch between dark and light appearance</string>
+    <string name="find_replace">Find &amp; Replace</string>
 </resources>
