@@ -565,7 +565,7 @@ class MainActivity : Activity() {
                         addCategory(Intent.CATEGORY_OPENABLE)
                         type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                         val title = database.get(id)?.title.orEmpty()
-                            .replace(Regex("[^\p{L}\p{N}_ -]"), "_")
+                            .replace(Regex("""[^\p{L}\p{N}_ -]"""), "_")
                             .take(55).ifBlank { "Erthi-Note" }
                         putExtra(Intent.EXTRA_TITLE, "$title.docx")
                     }, REQUEST_EXPORT_DOCX)
@@ -580,14 +580,14 @@ class MainActivity : Activity() {
                         else -> "text/html"
                     }
                     val title = database.get(id)?.title.orEmpty()
-                        .replace(Regex("[^\p{L}\p{N}_ -]"), "_")
+                        .replace(Regex("""[^\p{L}\p{N}_ -]"""), "_")
                         .take(55).ifBlank { "Erthi-Note" }
                     val suffix = arrayOf(".pdf", ".png", ".txt", ".html")[which]
                     putExtra(Intent.EXTRA_TITLE, title + suffix)
                 }, REQUEST_EXPORT_PDF + which)
             }.show()
     }
-    }
+
 
     private fun selectColor(note: Note) {
         AlertDialog.Builder(this)
