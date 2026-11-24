@@ -124,7 +124,7 @@ class AboutActivity : Activity() {
         this.text = text
         textSize = 14f
         setTextColor(Palette.MUTED)
-        lineSpacingMultiplier = 1.5f
+        setLineSpacing(0f, 1.5f)
         textDirection = android.view.View.TEXT_DIRECTION_LOCALE
     }
 

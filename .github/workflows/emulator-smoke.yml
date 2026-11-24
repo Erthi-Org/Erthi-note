@@ -61,7 +61,7 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           disable-animations: true
           script: |
-            gradle --no-daemon :app:connectedDebugAndroidTest
+            ./gradlew --no-daemon :app:connectedDebugAndroidTest
             bash scripts/emulator-smoke.sh
 
       - name: Upload emulator screenshots and logs
