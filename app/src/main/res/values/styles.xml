@@ -1,12 +1,83 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.ErthiNote" parent="android:style/Theme.Material.Light.NoActionBar">
-        <item name="android:fontFamily">sans</item>
-        <item name="android:colorAccent">@color/mint</item>
-        <item name="android:statusBarColor">@color/paper</item>
-        <item name="android:navigationBarColor">@color/ink</item>
-        <item name="android:windowLightStatusBar">true</item>
+    <!--
+        Theme.ErthiNote — primary dark Andalusian theme.
+        Inherits from Material dark base for correct status/nav bar handling.
+    -->
+    <style name="Theme.ErthiNote" parent="android:style/Theme.Material.NoActionBar">
+        <item name="android:colorPrimary">@color/erthi_black</item>
+        <item name="android:colorPrimaryDark">@color/erthi_black</item>
+        <item name="android:colorAccent">@color/erthi_gold</item>
+        <item name="android:colorBackground">@color/erthi_black</item>
+        <item name="android:windowBackground">@color/erthi_black</item>
+        <item name="android:statusBarColor">@color/erthi_black</item>
+        <item name="android:navigationBarColor">@color/erthi_black</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
         <item name="android:windowActionModeOverlay">true</item>
-        <item name="android:windowBackground">@color/paper</item>
+        <item name="android:textColorPrimary">@color/erthi_text_primary</item>
+        <item name="android:textColorSecondary">@color/erthi_text_secondary</item>
+        <item name="android:textColorHint">@color/erthi_text_disabled</item>
+        <item name="android:fontFamily">sans-serif</item>
+    </style>
+
+    <!--
+        Theme.ErthiNote.Light — optional light mode with Andalusian warm ivory tones.
+        Applied programmatically when user selects light theme in Settings.
+    -->
+    <style name="Theme.ErthiNote.Light" parent="android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:colorAccent">@color/erthi_gold_dim</item>
+        <item name="android:colorBackground">#F5F0E8</item>
+        <item name="android:windowBackground">#F5F0E8</item>
+        <item name="android:statusBarColor">#EAE4D8</item>
+        <item name="android:navigationBarColor">#EAE4D8</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:windowActionModeOverlay">true</item>
+        <item name="android:textColorPrimary">#1C1510</item>
+        <item name="android:textColorSecondary">#5A4F3E</item>
+        <item name="android:fontFamily">sans-serif</item>
+    </style>
+
+    <!-- Compact card style for note grid/list items -->
+    <style name="ErthiCard">
+        <item name="android:background">@color/erthi_card</item>
+        <item name="android:elevation">2dp</item>
+        <item name="android:padding">12dp</item>
+        <item name="android:layout_margin">4dp</item>
+    </style>
+
+    <!-- Floating note window chrome -->
+    <style name="ErthiFloatingWindow">
+        <item name="android:background">@color/erthi_surface</item>
+        <item name="android:elevation">8dp</item>
+        <item name="android:padding">0dp</item>
+    </style>
+
+    <!-- Gold accent button -->
+    <style name="ErthiButton">
+        <item name="android:background">@color/erthi_gold</item>
+        <item name="android:textColor">@color/erthi_text_on_gold</item>
+        <item name="android:paddingStart">16dp</item>
+        <item name="android:paddingEnd">16dp</item>
+        <item name="android:paddingTop">10dp</item>
+        <item name="android:paddingBottom">10dp</item>
+        <item name="android:textSize">14sp</item>
+    </style>
+
+    <!-- Kufi-style title for Arabic headings (falls back to sans-serif) -->
+    <style name="ErthiTitleArabic">
+        <item name="android:textColor">@color/erthi_text_primary</item>
+        <item name="android:textSize">20sp</item>
+        <item name="android:fontFamily">sans-serif-condensed</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <!-- Section header for lists -->
+    <style name="ErthiSectionHeader">
+        <item name="android:textColor">@color/erthi_silver</item>
+        <item name="android:textSize">11sp</item>
+        <item name="android:letterSpacing">0.1</item>
+        <item name="android:textAllCaps">true</item>
     </style>
 </resources>

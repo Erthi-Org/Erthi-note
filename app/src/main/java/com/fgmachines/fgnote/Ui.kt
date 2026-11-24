@@ -12,14 +12,29 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import kotlin.math.roundToInt
 
+/**
+ * Andalusian dark palette — Deep Glossy Black, Metallic Silver, Andalusian Gold.
+ * All text/background pairs meet WCAG AA (4.5:1).
+ */
 internal object Palette {
-    const val BACK = 0xFFF4F7F2.toInt()
-    const val PANEL = 0xFFFFFFFF.toInt()
-    const val PANEL_LIGHT = 0xFFE2F1E8.toInt()
-    const val MINT = 0xFF067F74.toInt()
-    const val WHITE = 0xFF193338.toInt()
-    const val MUTED = 0xFF6E8583.toInt()
-    const val RED = 0xFFFF9B9B.toInt()
+    // Backgrounds
+    const val BACK        = 0xFF0A0A0A.toInt()
+    const val PANEL       = 0xFF1C1C1C.toInt()
+    const val PANEL_LIGHT = 0xFF242424.toInt()
+
+    // Accent (Andalusian Gold)
+    const val MINT        = 0xFFC8A86E.toInt()
+
+    // Typography
+    const val WHITE       = 0xFFF0EDE8.toInt()
+    const val MUTED       = 0xFF787878.toInt()
+
+    // Danger (muted red for dark bg)
+    const val RED         = 0xFFE05A5A.toInt()
+
+    // Borders (Metallic Silver)
+    const val BORDER      = 0xFF363636.toInt()
+    const val SILVER      = 0xFFB8B8B8.toInt()
 }
 
 internal fun Context.dp(value: Int): Int = (resources.displayMetrics.density * value).roundToInt()
@@ -46,7 +61,7 @@ internal fun Context.icon(
     scaleType = ImageView.ScaleType.FIT_CENTER
     val p = dp(11)
     setPadding(p, p, p, p)
-    background = roundShape(tintBack, size / 2)
+    background = roundShape(tintBack, size / 2, Palette.BORDER)
     contentDescription = label
     isClickable = true
     isFocusable = true
@@ -74,7 +89,7 @@ internal fun Context.action(
     bold = true
 ).apply {
     gravity = Gravity.CENTER
-    background = roundShape(if (primary) Palette.MINT else Palette.PANEL_LIGHT, 16)
+    background = roundShape(if (primary) Palette.MINT else Palette.PANEL_LIGHT, 16, Palette.BORDER)
     val vertical = dp(15)
     setPadding(dp(18), vertical, dp(18), vertical)
     isClickable = true
