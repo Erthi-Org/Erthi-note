@@ -80,7 +80,7 @@ object NoteArchive {
             val color = item.getInt("color")
             require(color in NoteColors.backgrounds.indices) { "Invalid color" }
             val reminder = if (item.isNull("reminderAt")) null else item.getLong("reminderAt")
-                        result.add(Note(-1, body, updated, color, item.getBoolean("pinned"), reminder, title, html, titleSize, titleInk, item.optString("tags", ""),
+            result.add(Note(-1, body, updated, color, item.getBoolean("pinned"), reminder, title, html, titleSize, titleInk, item.optString("tags", ""),
                 item.optBoolean("archived", false), item.optBoolean("favorite", false)))
         }
         return result

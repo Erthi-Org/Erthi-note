@@ -37,17 +37,57 @@ object RichNotes {
     private const val IMAGE_PREFIX = "data:image/jpeg;base64,"
     private const val MAX_IMAGE_BYTES = 1_500_000
 
+    // Html.fromHtml ignores <font face="family">, so we embed font spans as a comment
+    // appended to the HTML: <!-- erthi-fonts:[{"s":0,"e":5,"f":"cairo"}] -->
+    private val FONT_COMMENT_RE = Regex("""<!--\s*erthi-fonts:(\[.*?])\s*-->""", RegexOption.DOT_MATCHES_ALL)
+
     fun deserialize(context: Context, html: String, plain: String,
         maxImageWidth: Int = (context.resources.displayMetrics.density * 245).toInt()
     ): SpannableStringBuilder {
         if (html.isBlank()) return SpannableStringBuilder(plain)
-        val parsed = Html.fromHtml(html, Html.FROM_HTML_MODE_COMPACT,
+        val baseHtml = html.replace(FONT_COMMENT_RE, "")
+        val parsed = Html.fromHtml(baseHtml, Html.FROM_HTML_MODE_COMPACT,
             Html.ImageGetter { src -> decodeDrawable(context, src, maxImageWidth) }, null)
-        return SpannableStringBuilder(parsed)
+        val ssb = SpannableStringBuilder(parsed)
+        // Re-apply font spans from supplementary comment
+        FONT_COMMENT_RE.find(html)?.groupValues?.getOrNull(1)?.let { json ->
+            parseFontJson(json).forEach { (s, e, family) ->
+                if (s < e && e <= ssb.length) {
+                    ssb.setSpan(TypefaceSpan(family), s, e, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                }
+            }
+        }
+        return ssb
     }
 
-    fun serialize(body: CharSequence): String =
-        Html.toHtml(SpannableStringBuilder(body), Html.TO_HTML_PARAGRAPH_LINES_INDIVIDUAL)
+    fun serialize(body: CharSequence): String {
+        val ssb = SpannableStringBuilder(body)
+        val html = Html.toHtml(ssb, Html.TO_HTML_PARAGRAPH_LINES_INDIVIDUAL)
+        // Append font spans that Html.toHtml encodes as <font face="…"> but fromHtml ignores
+        val fonts = ssb.getSpans(0, ssb.length, TypefaceSpan::class.java).mapNotNull { span ->
+            val f = span.family ?: return@mapNotNull null
+            if (f.isBlank()) return@mapNotNull null
+            Triple(ssb.getSpanStart(span), ssb.getSpanEnd(span), f)
+        }
+        if (fonts.isEmpty()) return html
+        val comment = fonts.joinToString(",", prefix = "<!-- erthi-fonts:[", postfix = "] -->") { (s, e, f) ->
+            "{\"s\":$s,\"e\":$e,\"f\":\"${f.replace("\"", "\\\"")}\"}"
+        }
+        return "$html$comment"
+    }
+
+    private fun parseFontJson(json: String): List<Triple<Int, Int, String>> {
+        // Minimal hand-rolled JSON array parser — no library dependency.
+        val result = mutableListOf<Triple<Int, Int, String>>()
+        val objRe = Regex("""\{"s":(\d+),"e":(\d+),"f":"([^"\\]*)"\}""")
+        objRe.findAll(json).forEach { m ->
+            val s = m.groupValues[1].toIntOrNull() ?: return@forEach
+            val e = m.groupValues[2].toIntOrNull() ?: return@forEach
+            val f = m.groupValues[3]
+            if (f.isNotBlank()) result += Triple(s, e, f)
+        }
+        return result
+    }
 
     /** A body can contain embedded image replacement chars. */
     fun plainText(body: CharSequence): String =
