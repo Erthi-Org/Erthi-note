@@ -56,9 +56,11 @@
 - **Bulk operations** (bulkDelete, bulkArchive, bulkFavorite, bulkMoveToFolder)
 
 ### Security
-- PinActivity: SHA-256 hashed PIN, throttle (service-level), skip option
+- PinActivity: PBKDF2WithHmacSHA256 PIN, throttle, skip option
 - SecureNoteArchive: AES-256-GCM, PBKDF2 210k iterations
 - Settings screen: PIN toggle with confirm-before-disable
+- **Biometric unlock** (API 28+): platform BiometricPrompt, BIOMETRIC_STRONG,
+  falls back to PIN on API 26–27 or unenrolled device; no new Gradle dependency
 
 ### Backup & Export
 - JSON backup (NoteArchive) with legacy .nfn compatibility
@@ -84,17 +86,14 @@
   in SettingsActivity (export/import still only in MainActivity)
 
 ## Remaining (priority order)
-1. **Green CI build** — verify lint/compile after latest pushes
+1. **Green CI build** — verify compile/lint/tests for commits 6524530 + 3fd1166
 2. Font picker with per-row typeface preview
-3. Biometric / Android Keystore-backed encryption
-4. Folders and subfolders in NoteStore + MainActivity
-5. Bulk operations (multi-select archive/delete/favorite)
-6. DOCX export: Arabic RTL direction
-7. PDF: Arabic direction, long-note pagination
-8. Reminder delivery on API 35 / Doze test
-9. Runtime verification: 4 floating windows, keyboard, rotation, screen-lock
-10. Emulator smoke tests (API 26 + API 35)
-11. Release signing configuration
+3. DOCX export: Arabic RTL direction
+4. PDF: Arabic direction, long-note pagination
+5. Reminder delivery on API 35 / Doze test
+6. Runtime verification: 4 floating windows, keyboard, rotation, screen-lock
+7. Emulator smoke tests (API 26 + API 35)
+8. Release signing configuration
 
 ## Known fixed defects (this session)
 - Duplicate `settings_section_appearance` in strings.xml → build failure FIXED

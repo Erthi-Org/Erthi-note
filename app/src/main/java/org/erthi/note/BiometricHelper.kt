@@ -28,9 +28,10 @@ object BiometricHelper {
             manager?.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG) ==
                 BiometricManager.BIOMETRIC_SUCCESS
         } else {
-            // API 28: check FingerprintManager enrollment as a proxy for biometric availability
+            // API 28: FingerprintManager is the only available check on this API level
             @Suppress("DEPRECATION")
             val fm = context.getSystemService(android.hardware.fingerprint.FingerprintManager::class.java)
+            @Suppress("DEPRECATION")
             fm?.isHardwareDetected == true && fm.hasEnrolledFingerprints()
         }
     }
