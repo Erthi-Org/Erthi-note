@@ -166,4 +166,10 @@
     <string name="numbered_list">Numbered list</string>
     <string name="insert_link">Insert link</string>
     <string name="link_url_hint">https://</string>
+    <string name="selected_count">%d selected</string>
+    <string name="bulk_delete">Delete all</string>
+    <string name="folder_new">New folder</string>
+    <string name="folder_rename">Rename folder</string>
+    <string name="folder_delete">Delete folder</string>
+    <string name="move_to_folder">Move to folder</string>
 </resources>

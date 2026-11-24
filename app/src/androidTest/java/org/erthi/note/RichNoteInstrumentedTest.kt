@@ -7,6 +7,7 @@ import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.style.ForegroundColorSpan
 import android.text.style.ImageSpan
+import android.text.style.TypefaceSpan
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.*
@@ -69,6 +70,63 @@ class RichNoteInstrumentedTest {
         NoteExporter.pdf(ctx, note, pdf)
         assertTrue(String(pdf.toByteArray().copyOfRange(0, 5)).startsWith("%PDF-"))
     }
+
+    // ── Font persistence regression tests ─────────────────────────────────────
+
+    @Test fun fontSerializeProducesErthinFontsComment() {
+        val ssb = SpannableStringBuilder("hello world")
+        ssb.setSpan(TypefaceSpan("Cairo"), 0, 5, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        val html = RichNotes.serialize(ssb)
+        assertTrue("erthi-fonts comment missing", html.contains("<!-- erthi-fonts:"))
+        assertTrue("Cairo family missing", html.contains("\"f\":\"Cairo\""))
+        assertTrue("start position wrong", html.contains("\"s\":0"))
+        assertTrue("end position wrong", html.contains("\"e\":5"))
+    }
+
+    @Test fun fontSerializeWithNoSpansProducesNoComment() {
+        val ssb = SpannableStringBuilder("plain text")
+        val html = RichNotes.serialize(ssb)
+        assertFalse("unexpected erthi-fonts comment", html.contains("erthi-fonts"))
+    }
+
+    @Test fun fontSerializeEscapesFontNameQuotes() {
+        val ssb = SpannableStringBuilder("test")
+        ssb.setSpan(TypefaceSpan("sans\"serif"), 0, 4, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        val html = RichNotes.serialize(ssb)
+        assertFalse("unescaped quote breaks JSON", html.contains("\"sans\"serif\""))
+        assertTrue("escaped quote missing", html.contains("sans\\\"serif"))
+    }
+
+    @Test fun fontSerializeMultipleSpansProducesAllEntries() {
+        val ssb = SpannableStringBuilder("hello world")
+        ssb.setSpan(TypefaceSpan("Cairo"), 0, 5, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        ssb.setSpan(TypefaceSpan("Amiri"), 6, 11, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        val html = RichNotes.serialize(ssb)
+        val commentMatch = Regex("""<!-- erthi-fonts:(\[.*?])\s*-->""", RegexOption.DOT_MATCHES_ALL)
+            .find(html)
+        val jsonPart = commentMatch?.groupValues?.getOrNull(1) ?: ""
+        val entries = Regex("""\{"s":\d+,"e":\d+,"f":"[^"]*"\}""").findAll(jsonPart).toList()
+        assertEquals("expected 2 font entries", 2, entries.size)
+    }
+
+    @Test fun bulletListTogglesPrefix() {
+        val ssb = SpannableStringBuilder("line one\nline two")
+        RichNotes.bulletList(ssb, 0, ssb.length)
+        assertTrue(ssb.toString().startsWith("• line one"))
+        RichNotes.bulletList(ssb, 0, ssb.length)
+        assertTrue(ssb.toString().startsWith("line one"))
+    }
+
+    @Test fun numberedListTogglesPrefix() {
+        val ssb = SpannableStringBuilder("alpha\nbeta")
+        RichNotes.numberedList(ssb, 0, ssb.length)
+        assertTrue(ssb.toString().startsWith("1. alpha"))
+        assertTrue(ssb.toString().contains("2. beta"))
+        RichNotes.numberedList(ssb, 0, ssb.length)
+        assertTrue(ssb.toString().startsWith("alpha"))
+    }
+
+    // ── Existing tests ─────────────────────────────────────────────────────────
 
     @Test fun embeddedJpegImageIsRestoredWithEditableSpan() {
         val bitmap = Bitmap.createBitmap(20, 15, Bitmap.Config.ARGB_8888)

@@ -57,6 +57,7 @@ class MainActivity : Activity() {
     private var pendingImageId = -1L
     private var pendingOverlayAction: Pair<String, Long>? = null
     private var noteContainer: LinearLayout? = null
+    private val selectedIds = mutableSetOf<Long>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -461,9 +462,51 @@ class MainActivity : Activity() {
             .show()
     }
 
-        private fun displayNotes() {
+    private fun displayNotes() {
         val parent = noteContainer ?: return
         parent.removeAllViews()
+        // Bulk action bar when items are selected
+        if (selectedIds.isNotEmpty()) {
+            val bulkBar = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                background = roundShape(Palette.PANEL, 14, Palette.PANEL_LIGHT)
+                setPadding(dp(10), dp(6), dp(10), dp(6))
+            }
+            val countLabel = label(getString(R.string.selected_count, selectedIds.size), 14f, Palette.WHITE)
+            bulkBar.addView(countLabel, LinearLayout.LayoutParams(0, -2, 1f))
+            bulkBar.addView(action(getString(R.string.bulk_delete), false) {
+                AlertDialog.Builder(this)
+                    .setMessage(R.string.delete_question)
+                    .setNegativeButton(R.string.cancel, null)
+                    .setPositiveButton(R.string.delete) { _, _ ->
+                        selectedIds.forEach { ReminderScheduler.cancel(this, it) }
+                        database.bulkDelete(selectedIds)
+                        selectedIds.clear()
+                        render()
+                    }.show()
+            })
+            bulkBar.addView(android.view.View(this), LinearLayout.LayoutParams(dp(6), 1))
+            bulkBar.addView(action(getString(R.string.archive_note), false) {
+                database.bulkArchive(selectedIds, true)
+                selectedIds.clear()
+                displayNotes()
+            })
+            bulkBar.addView(android.view.View(this), LinearLayout.LayoutParams(dp(6), 1))
+            bulkBar.addView(action(getString(R.string.favorite_note), false) {
+                database.bulkFavorite(selectedIds, true)
+                selectedIds.clear()
+                displayNotes()
+            })
+            bulkBar.addView(android.view.View(this), LinearLayout.LayoutParams(dp(6), 1))
+            bulkBar.addView(action(getString(R.string.cancel), false) {
+                selectedIds.clear()
+                displayNotes()
+            })
+            parent.addView(bulkBar, LinearLayout.LayoutParams(-1, -2).apply {
+                bottomMargin = dp(10)
+            })
+        }
         val list = database.search(search)
         if (list.isEmpty()) {
             val empty = label(getString(if (search.isNotEmpty()) R.string.no_results
@@ -584,7 +627,28 @@ class MainActivity : Activity() {
                 12f, accent
             ))
         }
-        row.setOnClickListener { start(FloatingNoteService.ACTION_OPEN, note.id) }
+        // Selection indicator strip at top of card
+        val selectedBg = roundShape(
+            if (selectedIds.contains(note.id)) 0xFF334455.toInt() else NoteColors.backgrounds[note.color],
+            18, if (selectedIds.contains(note.id)) 0xFF6699CC.toInt() else accent
+        )
+        row.background = selectedBg
+
+        row.setOnLongClickListener {
+            if (selectedIds.contains(note.id)) selectedIds.remove(note.id)
+            else selectedIds.add(note.id)
+            displayNotes()
+            true
+        }
+        row.setOnClickListener {
+            if (selectedIds.isNotEmpty()) {
+                if (selectedIds.contains(note.id)) selectedIds.remove(note.id)
+                else selectedIds.add(note.id)
+                displayNotes()
+            } else {
+                start(FloatingNoteService.ACTION_OPEN, note.id)
+            }
+        }
         val layout = if (grid) LinearLayout.LayoutParams(0, -2, 1f)
                      else LinearLayout.LayoutParams(-1, -2)
         layout.bottomMargin = dp(12)

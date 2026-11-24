@@ -228,6 +228,108 @@ class NoteStoreInstrumentedTest {
         }
     }
 
+    @Test
+    fun duplicateNoteCopiesAllFieldsToNewId() {
+        withStore { store ->
+            val id = store.create("Original body", 2, "Original title")
+            store.updateRich(id, "Original title", "Original body", "<b>bold</b>")
+            store.setTags(id, "work,important")
+            val newId = store.duplicate(id)
+            assertTrue(newId > 0 && newId != id)
+            val dupe = store.get(newId)!!
+            assertEquals("Original title", dupe.customTitle)
+            assertEquals("Original body", dupe.body)
+            assertEquals("<b>bold</b>", dupe.richHtml)
+            assertEquals("work,important", dupe.tags)
+            assertEquals(2, dupe.color)
+            // Both notes must coexist independently
+            assertEquals(2, store.all().size)
+        }
+    }
+
+    @Test
+    fun folderCrudAndNoteMovement() {
+        withStore { store ->
+            val folderId = store.createFolder("Projects")
+            assertTrue(folderId > 0)
+            val folders = store.getFolders()
+            assertEquals(1, folders.size)
+            assertEquals("Projects", folders[0].name)
+            assertNull(folders[0].parentId)
+
+            // Move a note into the folder
+            val noteId = store.create("Task 1")
+            assertTrue(store.moveNoteToFolder(noteId, folderId))
+            val inFolder = store.notesInFolder(folderId)
+            assertEquals(listOf(noteId), inFolder.map { it.id })
+            assertEquals(folderId, store.get(noteId)!!.folderId)
+
+            // Count reflected on folder
+            val updated = store.getFolders()
+            assertEquals(1, updated[0].noteCount)
+
+            // Rename
+            assertTrue(store.renameFolder(folderId, "Work Projects"))
+            assertEquals("Work Projects", store.getFolders()[0].name)
+
+            // Delete folder: note should move to root
+            assertTrue(store.deleteFolder(folderId))
+            assertEquals(0, store.getFolders().size)
+            assertNull(store.get(noteId)!!.folderId)
+        }
+    }
+
+    @Test
+    fun subfolderParentingAndCascadeReparent() {
+        withStore { store ->
+            val parentId = store.createFolder("Parent")
+            val childId = store.createFolder("Child", parentId)
+            val subs = store.getFolders(parentId)
+            assertEquals(1, subs.size)
+            assertEquals("Child", subs[0].name)
+            assertEquals(parentId, subs[0].parentId)
+
+            // Delete parent: child should move to root
+            store.deleteFolder(parentId)
+            val roots = store.getFolders()
+            assertEquals(1, roots.size)
+            assertEquals("Child", roots[0].name)
+            assertNull(roots[0].parentId)
+        }
+    }
+
+    @Test
+    fun bulkDeleteMovesToTrashAndDoesNotTouchOthers() {
+        withStore { store ->
+            val id1 = store.create("note 1")
+            val id2 = store.create("note 2")
+            val id3 = store.create("keep this")
+            val deleted = store.bulkDelete(setOf(id1, id2))
+            assertEquals(2, deleted)
+            assertNull(store.get(id1))
+            assertNull(store.get(id2))
+            assertNotNull(store.get(id3))
+        }
+    }
+
+    @Test
+    fun bulkArchiveAndFavoriteOperations() {
+        withStore { store ->
+            val id1 = store.create("note 1")
+            val id2 = store.create("note 2")
+            val id3 = store.create("note 3")
+            assertEquals(2, store.bulkArchive(setOf(id1, id2), true))
+            assertTrue(store.allArchived().map { it.id }.containsAll(listOf(id1, id2)))
+            assertFalse(store.all().map { it.id }.contains(id1))
+
+            assertEquals(2, store.bulkFavorite(setOf(id2, id3), true))
+            assertTrue(store.get(id3)!!.favorite)
+
+            assertEquals(1, store.bulkMoveToFolder(setOf(id3), null))
+            assertNull(store.get(id3)!!.folderId)
+        }
+    }
+
     /** SQLiteOpenHelper is not AutoCloseable on all supported Android releases. */
     private inline fun <T> withStore(block: (NoteStore) -> T): T {
         val store = NoteStore(context)

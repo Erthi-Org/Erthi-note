@@ -18,10 +18,19 @@ data class Note(
     val titleInk: Int = 0,
     val tags: String = "",
     val archived: Boolean = false,
-    val favorite: Boolean = false
+    val favorite: Boolean = false,
+    val folderId: Long? = null,
 ) {
     val title: String get() = customTitle.ifBlank { NoteText.title(body) }
 }
+
+data class Folder(
+    val id: Long,
+    val name: String,
+    val parentId: Long?,
+    val createdAt: Long,
+    val noteCount: Int = 0,
+)
 
 object NoteText {
     fun title(body: String): String = body.lineSequence().map { it.trim() }
@@ -45,15 +54,24 @@ object NoteColors {
 
 /** Versioned migrations preserve all existing user notes, including 0.1.0 databases. */
 class NoteStore(context: Context) :
-    SQLiteOpenHelper(context.applicationContext, "floating_notes.db", null, 8) {
+    SQLiteOpenHelper(context.applicationContext, "floating_notes.db", null, 9) {
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL(
             "CREATE TABLE notes (id INTEGER PRIMARY KEY AUTOINCREMENT, " +
                 "body TEXT NOT NULL, updated_at INTEGER NOT NULL, " +
                 "color INTEGER NOT NULL DEFAULT 0, pinned INTEGER NOT NULL DEFAULT 0, " +
-                "reminder_at INTEGER, title TEXT NOT NULL DEFAULT '', rich_html TEXT NOT NULL DEFAULT '', deleted_at INTEGER, title_size INTEGER NOT NULL DEFAULT 20, title_ink INTEGER NOT NULL DEFAULT 0, tags TEXT NOT NULL DEFAULT '', archived_at INTEGER, favorite INTEGER NOT NULL DEFAULT 0)"
+                "reminder_at INTEGER, title TEXT NOT NULL DEFAULT '', " +
+                "rich_html TEXT NOT NULL DEFAULT '', deleted_at INTEGER, " +
+                "title_size INTEGER NOT NULL DEFAULT 20, title_ink INTEGER NOT NULL DEFAULT 0, " +
+                "tags TEXT NOT NULL DEFAULT '', archived_at INTEGER, " +
+                "favorite INTEGER NOT NULL DEFAULT 0, folder_id INTEGER)"
         )
         db.execSQL("CREATE INDEX notes_updated_idx ON notes(updated_at DESC)")
+        db.execSQL("CREATE INDEX notes_folder_idx ON notes(folder_id)")
+        db.execSQL(
+            "CREATE TABLE folders (id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                "name TEXT NOT NULL, parent_id INTEGER, created_at INTEGER NOT NULL)"
+        )
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
@@ -62,25 +80,25 @@ class NoteStore(context: Context) :
             db.execSQL("ALTER TABLE notes ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0")
             db.execSQL("ALTER TABLE notes ADD COLUMN reminder_at INTEGER")
         }
-        if (oldVersion < 3) {
-            db.execSQL("ALTER TABLE notes ADD COLUMN title TEXT NOT NULL DEFAULT ''")
-        }
-        if (oldVersion < 4) {
-            db.execSQL("ALTER TABLE notes ADD COLUMN rich_html TEXT NOT NULL DEFAULT ''")
-        }
-        if (oldVersion < 5) {
-            db.execSQL("ALTER TABLE notes ADD COLUMN deleted_at INTEGER")
-        }
+        if (oldVersion < 3) db.execSQL("ALTER TABLE notes ADD COLUMN title TEXT NOT NULL DEFAULT ''")
+        if (oldVersion < 4) db.execSQL("ALTER TABLE notes ADD COLUMN rich_html TEXT NOT NULL DEFAULT ''")
+        if (oldVersion < 5) db.execSQL("ALTER TABLE notes ADD COLUMN deleted_at INTEGER")
         if (oldVersion < 6) {
             db.execSQL("ALTER TABLE notes ADD COLUMN title_size INTEGER NOT NULL DEFAULT 20")
             db.execSQL("ALTER TABLE notes ADD COLUMN title_ink INTEGER NOT NULL DEFAULT 0")
         }
-        if (oldVersion < 7) {
-            db.execSQL("ALTER TABLE notes ADD COLUMN tags TEXT NOT NULL DEFAULT ''")
-        }
+        if (oldVersion < 7) db.execSQL("ALTER TABLE notes ADD COLUMN tags TEXT NOT NULL DEFAULT ''")
         if (oldVersion < 8) {
             db.execSQL("ALTER TABLE notes ADD COLUMN archived_at INTEGER")
             db.execSQL("ALTER TABLE notes ADD COLUMN favorite INTEGER NOT NULL DEFAULT 0")
+        }
+        if (oldVersion < 9) {
+            db.execSQL("ALTER TABLE notes ADD COLUMN folder_id INTEGER")
+            db.execSQL("CREATE INDEX IF NOT EXISTS notes_folder_idx ON notes(folder_id)")
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS folders (id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                    "name TEXT NOT NULL, parent_id INTEGER, created_at INTEGER NOT NULL)"
+            )
         }
     }
 
@@ -207,12 +225,13 @@ class NoteStore(context: Context) :
         return if (count == 1) get(last.id) else null
     }
 
-    private val columns = arrayOf("id", "body", "updated_at", "color", "pinned", "reminder_at", "title", "rich_html", "title_size", "title_ink", "tags", "archived_at", "favorite")
+    private val columns = arrayOf("id", "body", "updated_at", "color", "pinned", "reminder_at", "title", "rich_html", "title_size", "title_ink", "tags", "archived_at", "favorite", "folder_id")
 
     private fun row(c: android.database.Cursor) = Note(
         c.getLong(0), c.getString(1), c.getLong(2), NoteColors.valid(c.getInt(3)),
         c.getInt(4) != 0, if (c.isNull(5)) null else c.getLong(5), c.getString(6), c.getString(7), c.getInt(8), c.getInt(9), c.getString(10),
-        !c.isNull(11), c.getInt(12) != 0
+        !c.isNull(11), c.getInt(12) != 0,
+        if (c.isNull(13)) null else c.getLong(13)
     )
 
     fun get(id: Long): Note? {
@@ -255,6 +274,128 @@ class NoteStore(context: Context) :
 
     fun emptyTrash(): Int =
         writableDatabase.delete("notes", "deleted_at IS NOT NULL", null)
+
+    // ── Folder queries ────────────────────────────────────────────────────────
+
+    fun getFolders(parentId: Long? = null): List<Folder> {
+        val result = mutableListOf<Folder>()
+        val (sel, args) = if (parentId == null)
+            "parent_id IS NULL" to emptyArray()
+        else
+            "parent_id = ?" to arrayOf(parentId.toString())
+        readableDatabase.query("folders", arrayOf("id", "name", "parent_id", "created_at"),
+            sel, args.takeIf { it.isNotEmpty() }, null, null, "name ASC").use { c ->
+            while (c.moveToNext()) {
+                val fid = c.getLong(0)
+                val count = noteCountInFolder(fid)
+                result += Folder(fid, c.getString(1), if (c.isNull(2)) null else c.getLong(2),
+                    c.getLong(3), count)
+            }
+        }
+        return result
+    }
+
+    private fun noteCountInFolder(folderId: Long): Int {
+        readableDatabase.query("notes", arrayOf("COUNT(*)"),
+            "folder_id = ? AND deleted_at IS NULL AND archived_at IS NULL",
+            arrayOf(folderId.toString()), null, null, null).use { c ->
+            return if (c.moveToFirst()) c.getInt(0) else 0
+        }
+    }
+
+    fun notesInFolder(folderId: Long?): List<Note> {
+        val result = mutableListOf<Note>()
+        val (sel, args) = if (folderId == null)
+            "folder_id IS NULL AND deleted_at IS NULL AND archived_at IS NULL" to null
+        else
+            "folder_id = ? AND deleted_at IS NULL AND archived_at IS NULL" to arrayOf(folderId.toString())
+        readableDatabase.query("notes", columns, sel, args, null, null,
+            "favorite DESC, pinned DESC, updated_at DESC, id DESC").use { c ->
+            while (c.moveToNext()) result.add(row(c))
+        }
+        return result
+    }
+
+    fun createFolder(name: String, parentId: Long? = null): Long {
+        val values = ContentValues().apply {
+            put("name", name.trim().take(200))
+            if (parentId != null) put("parent_id", parentId) else putNull("parent_id")
+            put("created_at", System.currentTimeMillis())
+        }
+        return writableDatabase.insertOrThrow("folders", null, values)
+    }
+
+    fun renameFolder(id: Long, name: String): Boolean =
+        writableDatabase.update("folders",
+            ContentValues().apply { put("name", name.trim().take(200)) },
+            "id = ?", arrayOf(id.toString())) > 0
+
+    fun deleteFolder(id: Long): Boolean {
+        // Move contained notes to parent folder (or root) before deleting
+        val parentId: Long? = readableDatabase.query("folders", arrayOf("parent_id"),
+            "id = ?", arrayOf(id.toString()), null, null, null, "1").use { c ->
+            if (c.moveToFirst() && !c.isNull(0)) c.getLong(0) else null
+        }
+        val cv = ContentValues().apply {
+            if (parentId != null) put("folder_id", parentId) else putNull("folder_id")
+        }
+        writableDatabase.update("notes", cv, "folder_id = ?", arrayOf(id.toString()))
+        // Reparent subfolders
+        val subCv = ContentValues().apply {
+            if (parentId != null) put("parent_id", parentId) else putNull("parent_id")
+        }
+        writableDatabase.update("folders", subCv, "parent_id = ?", arrayOf(id.toString()))
+        return writableDatabase.delete("folders", "id = ?", arrayOf(id.toString())) > 0
+    }
+
+    fun moveNoteToFolder(noteId: Long, folderId: Long?): Boolean =
+        writableDatabase.update("notes",
+            ContentValues().apply { if (folderId != null) put("folder_id", folderId) else putNull("folder_id") },
+            "id = ? AND deleted_at IS NULL", arrayOf(noteId.toString())) > 0
+
+    // ── Bulk operations ───────────────────────────────────────────────────────
+
+    fun bulkDelete(ids: Set<Long>): Int {
+        if (ids.isEmpty()) return 0
+        val placeholders = ids.joinToString(",") { "?" }
+        return writableDatabase.update("notes",
+            ContentValues().apply { put("deleted_at", System.currentTimeMillis()) },
+            "id IN ($placeholders) AND deleted_at IS NULL",
+            ids.map { it.toString() }.toTypedArray())
+    }
+
+    fun bulkArchive(ids: Set<Long>, archive: Boolean): Int {
+        if (ids.isEmpty()) return 0
+        val placeholders = ids.joinToString(",") { "?" }
+        val cv = ContentValues().apply {
+            if (archive) put("archived_at", System.currentTimeMillis()) else putNull("archived_at")
+        }
+        return writableDatabase.update("notes", cv,
+            "id IN ($placeholders) AND deleted_at IS NULL",
+            ids.map { it.toString() }.toTypedArray())
+    }
+
+    fun bulkFavorite(ids: Set<Long>, favorite: Boolean): Int {
+        if (ids.isEmpty()) return 0
+        val placeholders = ids.joinToString(",") { "?" }
+        return writableDatabase.update("notes",
+            ContentValues().apply { put("favorite", if (favorite) 1 else 0) },
+            "id IN ($placeholders) AND deleted_at IS NULL",
+            ids.map { it.toString() }.toTypedArray())
+    }
+
+    fun bulkMoveToFolder(ids: Set<Long>, folderId: Long?): Int {
+        if (ids.isEmpty()) return 0
+        val placeholders = ids.joinToString(",") { "?" }
+        val cv = ContentValues().apply {
+            if (folderId != null) put("folder_id", folderId) else putNull("folder_id")
+        }
+        return writableDatabase.update("notes", cv,
+            "id IN ($placeholders) AND deleted_at IS NULL",
+            ids.map { it.toString() }.toTypedArray())
+    }
+
+    // ── Import ────────────────────────────────────────────────────────────────
 
     fun importNotes(items: List<Note>): List<Long> {
         val db = writableDatabase

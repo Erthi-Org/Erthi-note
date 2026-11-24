@@ -166,4 +166,10 @@
     <string name="numbered_list">قائمة مرقمة</string>
     <string name="insert_link">إدراج رابط</string>
     <string name="link_url_hint">https://</string>
+    <string name="selected_count">%d محدد</string>
+    <string name="bulk_delete">حذف الكل</string>
+    <string name="folder_new">مجلد جديد</string>
+    <string name="folder_rename">إعادة تسمية المجلد</string>
+    <string name="folder_delete">حذف المجلد</string>
+    <string name="move_to_folder">نقل إلى مجلد</string>
 </resources>

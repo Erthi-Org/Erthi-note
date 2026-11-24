@@ -49,8 +49,11 @@
 - CRUD, pin, reminder, search
 - Favorites, archive, recycle bin
 - Tags (comma-separated, editable inline)
-- **Note duplication** (new — duplicates title, body, richHtml, color, tags)
+- **Note duplication** (duplicates title, body, richHtml, color, tags)
 - Color picker per note
+- **Folders + subfolders** (NoteStore v9: createFolder, renameFolder, deleteFolder, getFolders, getSubfolders, moveNoteToFolder; cascade reparent on delete)
+- **Multi-select** (long-press to enter selection mode; bulk delete, archive, favorite via action bar)
+- **Bulk operations** (bulkDelete, bulkArchive, bulkFavorite, bulkMoveToFolder)
 
 ### Security
 - PinActivity: SHA-256 hashed PIN, throttle (service-level), skip option
