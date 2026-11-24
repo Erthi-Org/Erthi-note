@@ -60,6 +60,12 @@
     <string name="too_many_windows">يمكن فتح أربع ملاحظات عائمة. صغّر إحداها لفتح ملاحظة أخرى.</string>
     <string name="toggle_checklist">تبديل حالة المهمة</string>
     <string name="mark_bold">تنسيق غامق</string>
+    <string name="italic_format">مائل</string>
+    <string name="underline_format">تسطير</string>
+    <string name="strikethrough_format">يتوسطه خط</string>
+    <string name="text_size_bigger">تكبير النص</string>
+    <string name="text_size_smaller">تصغير النص</string>
+    <string name="clear_formatting">مسح التنسيق</string>
     <string name="note_title_hint">عنوان الملاحظة</string>
     <string name="share_note_via_email">مشاركة بالبريد (Gmail / Proton)</string>
     <string name="exit_save_title">هل تريد حفظ الملاحظات والخروج؟</string>
@@ -105,4 +111,12 @@
     <string name="about_licences_body">إرثي نوتة مبنية على منصة أندرويد وتستخدم حصرياً مكتبات Android SDK وJava القياسية. لا تتضمن مكتبات خارجية. الكود المصدري متاح على github.com/Erthi-Org/Erthi-note.</string>
     <string name="settings">الإعدادات</string>
     <string name="about_erthi">عن إرثي</string>
+    <string name="settings_section_editor">المحرر</string>
+    <string name="settings_section_backup">النسخ الاحتياطي</string>
+    <string name="settings_section_about">حول التطبيق</string>
+    <string name="settings_rtl_default">الافتراضي من اليمين إلى اليسار</string>
+    <string name="settings_rtl_desc">ابدأ الملاحظات الجديدة بالاتجاه من اليمين إلى اليسار</string>
+    <string name="settings_backup_info">النسخ الاحتياطية المشفرة محمية بكلمة مرور تحددها. يمكن أن تصل النسخة الاحتياطية إلى 50 ميجابايت.</string>
+    <string name="settings_on">تشغيل</string>
+    <string name="settings_off">إيقاف</string>
 </resources>

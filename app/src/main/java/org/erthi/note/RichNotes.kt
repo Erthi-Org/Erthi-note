@@ -15,6 +15,8 @@ import android.text.style.ForegroundColorSpan
 import android.text.style.ImageSpan
 import android.text.style.RelativeSizeSpan
 import android.text.style.StyleSpan
+import android.text.style.StrikethroughSpan
+import android.text.style.UnderlineSpan
 import android.graphics.Typeface
 import java.io.ByteArrayOutputStream
 import java.util.ArrayDeque
@@ -145,6 +147,35 @@ object RichNotes {
         val from = iterator.preceding(at).takeIf { it >= 0 } ?: (at - 1)
         editable.delete(from, at)
         return from
+    }
+
+    fun italic(editable: Editable, start: Int, end: Int) {
+        if (end > start) editable.setSpan(StyleSpan(Typeface.ITALIC), start, end,
+            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+    }
+
+    fun underline(editable: Editable, start: Int, end: Int) {
+        if (end > start) editable.setSpan(UnderlineSpan(), start, end,
+            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+    }
+
+    fun strikethrough(editable: Editable, start: Int, end: Int) {
+        if (end > start) editable.setSpan(StrikethroughSpan(), start, end,
+            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+    }
+
+    fun fontSize(editable: Editable, start: Int, end: Int, proportion: Float) {
+        if (end > start) editable.setSpan(RelativeSizeSpan(proportion), start, end,
+            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+    }
+
+    fun clearSpans(editable: Editable, start: Int, end: Int) {
+        if (end <= start) return
+        for (cls in arrayOf(ForegroundColorSpan::class.java, RelativeSizeSpan::class.java,
+                StyleSpan::class.java, UnderlineSpan::class.java, StrikethroughSpan::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            editable.getSpans(start, end, cls as Class<Any>).forEach { editable.removeSpan(it) }
+        }
     }
 }
 

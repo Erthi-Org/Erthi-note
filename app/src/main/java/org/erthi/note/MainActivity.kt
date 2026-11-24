@@ -393,6 +393,10 @@ class MainActivity : Activity() {
         content.addView(action(getString(R.string.about_erthi), false) {
             startActivity(android.content.Intent(this, AboutActivity::class.java))
         })
+        content.addSpace(this, 8)
+        content.addView(action(getString(R.string.settings), false) {
+            startActivity(android.content.Intent(this, SettingsActivity::class.java))
+        })
         filter.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {

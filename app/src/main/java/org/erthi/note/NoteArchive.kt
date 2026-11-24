@@ -11,7 +11,7 @@ import java.io.OutputStream
  */
 object NoteArchive {
     private const val VERSION = 1
-    const val MAX_BYTES = 5 * 1024 * 1024
+    const val MAX_BYTES = 50 * 1024 * 1024
     const val MAX_NOTES = 2000
     const val MAX_BODY = 100_000
 

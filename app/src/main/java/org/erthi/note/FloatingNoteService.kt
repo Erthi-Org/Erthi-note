@@ -523,6 +523,24 @@ class FloatingNoteService : Service() {
             ed.replace(start, end,
                 NoteFormatting.bold(ed.subSequence(start, end).toString()))
         })
+        command("𝐼", getString(R.string.italic_format)) {
+            applySpanEdit { ed, from, to -> RichNotes.italic(ed, from, to) }
+        }
+        command("U̲", getString(R.string.underline_format)) {
+            applySpanEdit { ed, from, to -> RichNotes.underline(ed, from, to) }
+        }
+        command("S̶", getString(R.string.strikethrough_format)) {
+            applySpanEdit { ed, from, to -> RichNotes.strikethrough(ed, from, to) }
+        }
+        command("T+", getString(R.string.text_size_bigger)) {
+            applySpanEdit { ed, from, to -> RichNotes.fontSize(ed, from, to, 1.25f) }
+        }
+        command("T−", getString(R.string.text_size_smaller)) {
+            applySpanEdit { ed, from, to -> RichNotes.fontSize(ed, from, to, 0.80f) }
+        }
+        command("✕", getString(R.string.clear_formatting)) {
+            applySpanEdit { ed, from, to -> RichNotes.clearSpans(ed, from, to) }
+        }
         tools.addView(resize)
         toolbar.addView(tools)
         card.addView(toolbar, LinearLayout.LayoutParams(-1, dp(48)))
