@@ -176,4 +176,5 @@
     <string name="biometric_subtitle">Confirm your identity to unlock Erthi Note</string>
     <string name="biometric_failed">Biometric authentication failed</string>
     <string name="or_use_pin">— or enter PIN —</string>
+    <string name="font_recently_used">Recently used</string>
 </resources>

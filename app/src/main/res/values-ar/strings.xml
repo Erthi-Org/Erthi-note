@@ -176,4 +176,5 @@
     <string name="biometric_subtitle">أكّد هويتك لفتح إرثي نوتة</string>
     <string name="biometric_failed">فشل التحقق البيومتري</string>
     <string name="or_use_pin">— أو أدخل رمز PIN —</string>
+    <string name="font_recently_used">مستخدم مؤخراً</string>
 </resources>

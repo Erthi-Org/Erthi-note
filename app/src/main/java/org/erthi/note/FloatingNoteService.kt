@@ -28,6 +28,7 @@ import android.view.WindowManager
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import kotlin.math.abs
@@ -40,7 +41,6 @@ import kotlin.math.min
  * No accessibility service, screen reading, or network access is used.
  */
 class FloatingNoteService : Service() {
-    private var currentCard: android.view.View? = null
     companion object {
         const val ACTION_START = "org.erthi.note.START"
         const val ACTION_OPEN = "org.erthi.note.OPEN"
@@ -560,16 +560,16 @@ class FloatingNoteService : Service() {
             }
         })
         command("F", getString(R.string.font_picker)) {
-            showFontPicker()
+            showFontPicker(noteId)
         }
         command("α", getString(R.string.opacity_slider)) {
-            showOpacitySlider()
+            showOpacitySlider(noteId)
         }
         command("⌕", getString(R.string.find_replace)) {
-            showFindReplace()
+            showFindReplace(noteId)
         }
         command("⇄", getString(R.string.toggle_rtl)) {
-            toggleRtlLtr()
+            toggleRtlLtr(noteId)
         }
         command("•", getString(R.string.bullet_list)) {
             applySpanEdit { ed, from, to -> RichNotes.bulletList(ed, from, to) }
@@ -578,7 +578,7 @@ class FloatingNoteService : Service() {
             applySpanEdit { ed, from, to -> RichNotes.numberedList(ed, from, to) }
         }
         command("🔗", getString(R.string.insert_link)) {
-            showInsertLink()
+            showInsertLink(noteId)
         }
         tools.addView(icon(R.drawable.ic_clear_format, getString(R.string.clear_formatting),
             Palette.PANEL_LIGHT, 38) {
@@ -589,7 +589,8 @@ class FloatingNoteService : Service() {
         card.addView(toolbar, LinearLayout.LayoutParams(-1, dp(48)))
 
         val opacityPrefs = getSharedPreferences("editor_opacity", MODE_PRIVATE)
-        val savedAlpha = opacityPrefs.getFloat("alpha", 0.95f).coerceIn(0.3f, 1.0f)
+        val savedAlpha = opacityPrefs.getFloat("alpha_$noteId",
+            opacityPrefs.getFloat("alpha", 0.95f)).coerceIn(0.3f, 1.0f)
         val sizePrefs = getSharedPreferences("editor_size", MODE_PRIVATE)
         val maxWidth = max(dp(220), screenWidth() - dp(16))
         val maxHeight = max(dp(220), screenHeight() - dp(130))
@@ -670,7 +671,6 @@ class FloatingNoteService : Service() {
             }
         }
         card.alpha = savedAlpha
-        currentCard = card
         if (!addWindow(card, p)) return
         editors[noteId] = EditorSession(card, input, titleInput, p, history)
         keepBubbleAboveEditor()
@@ -759,37 +759,138 @@ class FloatingNoteService : Service() {
         }
     }
 
-    /** Window-manager calls can fail when overlay access is revoked while a note is open. */
-    private fun showFontPicker() {
+    private fun showFontPicker(noteId: Long) {
         val ctx = this
-        val fonts = FontManager.allFonts(ctx)
-        if (fonts.isEmpty()) return
-        val dialog = android.app.AlertDialog.Builder(ctx,
-            android.R.style.Theme_Material_Dialog_MinWidth)
-            .setTitle(getString(R.string.font_picker))
-            .setItems(Array(fonts.size) { fonts[it].displayName }) { _, i ->
-                val entry = fonts[i]
-                val activeEd = (editors[activeNoteId] ?: editors.values.lastOrNull())?.input ?: return@setItems
-                val start = activeEd.selectionStart.coerceAtLeast(0)
-                val end = activeEd.selectionEnd.coerceAtLeast(start)
-                activeEd.text?.let { t ->
-                    if (entry.resId != null || entry.isCustom) {
-                        val tf = FontManager.loadTypeface(ctx, entry)
-                        RichNotes.customFont(t, start, end, entry.familyName, tf)
-                    } else {
-                        RichNotes.fontFamily(t, start, end, entry.familyName)
-                    }
+        val session = editors[noteId] ?: return
+
+        // Track recently used in SharedPreferences (up to 5, comma-separated family names)
+        val recentPrefs = getSharedPreferences("recent_fonts", MODE_PRIVATE)
+        fun recentFamilies(): List<String> =
+            recentPrefs.getString("recent", "")!!
+                .split(",").map { it.trim() }.filter { it.isNotEmpty() }
+        fun recordRecent(familyName: String) {
+            val updated = (listOf(familyName) + recentFamilies().filter { it != familyName }).take(5)
+            recentPrefs.edit().putString("recent", updated.joinToString(",")).apply()
+        }
+
+        fun applyFont(entry: FontManager.FontEntry) {
+            val ed = session.input
+            val start = ed.selectionStart.coerceAtLeast(0)
+            val end = ed.selectionEnd.coerceAtLeast(start)
+            ed.text?.let { t ->
+                session.history.record(session.titleInput.text.toString(), t)
+                if (FontManager.needsCustomSpan(entry)) {
+                    val tf = FontManager.loadTypeface(ctx, entry)
+                    RichNotes.customFont(t, start, end, entry.familyName, tf)
+                } else {
+                    RichNotes.fontFamily(t, start, end, entry.familyName)
                 }
             }
+            recordRecent(entry.familyName)
+        }
+
+        val allFonts = FontManager.allFonts(ctx)
+        if (allFonts.isEmpty()) return
+
+        // Build scrollable custom view: Recently Used header + category sections
+        val scroll = ScrollView(ctx)
+        val container = LinearLayout(ctx).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(4), dp(4), dp(4), dp(4))
+        }
+        scroll.addView(container)
+
+        var dialog: android.app.AlertDialog? = null
+
+        fun fontRow(entry: FontManager.FontEntry): TextView {
+            return TextView(ctx).apply {
+                text = entry.displayName
+                textSize = 16f
+                val p = dp(14)
+                setPadding(dp(20), p, dp(20), p)
+                setTextColor(0xFF212121.toInt())
+                isClickable = true
+                isFocusable = true
+                // Load typeface synchronously for local/system fonts; async for GMS downloads
+                if (entry.assetPath != null || entry.isCustom) {
+                    // Local: load on main thread (fast file read)
+                    try { typeface = FontManager.loadTypeface(ctx, entry) } catch (_: Exception) {}
+                } else if (entry.resId != null) {
+                    // GMS downloadable: load in background, update view when ready
+                    Thread {
+                        val tf = try { FontManager.loadTypeface(ctx, entry) } catch (_: Exception) { null }
+                        if (tf != null) {
+                            android.os.Handler(android.os.Looper.getMainLooper()).post {
+                                typeface = tf
+                            }
+                        }
+                    }.start()
+                } else {
+                    // System font: resolve via Typeface.create (always available)
+                    try { typeface = android.graphics.Typeface.create(entry.familyName, android.graphics.Typeface.NORMAL) } catch (_: Exception) {}
+                }
+                setOnClickListener {
+                    applyFont(entry)
+                    dialog?.dismiss()
+                }
+                // Ripple-style press feedback
+                background = android.graphics.drawable.StateListDrawable().apply {
+                    addState(intArrayOf(android.R.attr.state_pressed),
+                        android.graphics.drawable.ColorDrawable(0x22000000.toInt()))
+                    addState(intArrayOf(), android.graphics.drawable.ColorDrawable(0x00000000.toInt()))
+                }
+            }
+        }
+
+        fun sectionHeader(title: String) = TextView(ctx).apply {
+            text = title.uppercase()
+            textSize = 11f
+            setTextColor(0xFF888888.toInt())
+            setPadding(dp(20), dp(10), dp(20), dp(4))
+            setTypeface(null, android.graphics.Typeface.BOLD)
+        }
+
+        // Recently used section
+        val recent = recentFamilies()
+            .mapNotNull { fam -> allFonts.firstOrNull { it.familyName == fam } }
+        if (recent.isNotEmpty()) {
+            container.addView(sectionHeader(getString(R.string.font_recently_used)))
+            recent.forEach { container.addView(fontRow(it)) }
+            container.addView(android.view.View(ctx).apply {
+                setBackgroundColor(0x1A000000.toInt())
+                layoutParams = LinearLayout.LayoutParams(-1, dp(1)).apply { setMargins(0, dp(4), 0, dp(4)) }
+            })
+        }
+
+        // Category sections
+        val byCategory = FontManager.fontsByCategory(ctx)
+        for (category in FontManager.Category.values()) {
+            val entries = byCategory[category] ?: continue
+            container.addView(sectionHeader(category.label))
+            entries.forEach { container.addView(fontRow(it)) }
+        }
+
+        dialog = android.app.AlertDialog.Builder(ctx,
+            android.R.style.Theme_Material_Dialog_MinWidth)
+            .setTitle(getString(R.string.font_picker))
+            .setView(scroll)
+            .setNegativeButton(getString(R.string.cancel), null)
             .create()
         dialog.window?.setType(android.view.WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY)
         dialog.show()
+        // Constrain height so the dialog doesn't overflow on small overlays
+        dialog.window?.setLayout(
+            (resources.displayMetrics.widthPixels * 0.85f).toInt(),
+            (resources.displayMetrics.heightPixels * 0.70f).toInt()
+        )
     }
 
-    private fun showOpacitySlider() {
+    private fun showOpacitySlider(noteId: Long) {
         val ctx = this
+        val session = editors[noteId] ?: return
         val prefs = getSharedPreferences("editor_opacity", MODE_PRIVATE)
-        val current = prefs.getFloat("alpha", 0.95f).coerceIn(0.3f, 1.0f)
+        val prefKey = "alpha_$noteId"
+        val current = prefs.getFloat(prefKey, prefs.getFloat("alpha", 0.95f)).coerceIn(0.3f, 1.0f)
         val layout = android.widget.LinearLayout(ctx).apply {
             orientation = android.widget.LinearLayout.VERTICAL
             setPadding(dp(24), dp(16), dp(24), dp(16))
@@ -806,12 +907,12 @@ class FloatingNoteService : Service() {
             override fun onProgressChanged(sb: android.widget.SeekBar, p: Int, fromUser: Boolean) {
                 val alpha = 0.3f + p / 100f
                 valueLabel.text = "${(alpha * 100).toInt()}%"
-                currentCard?.alpha = alpha
+                session.view.alpha = alpha
             }
             override fun onStartTrackingTouch(sb: android.widget.SeekBar) {}
             override fun onStopTrackingTouch(sb: android.widget.SeekBar) {
                 val alpha = 0.3f + sb.progress / 100f
-                prefs.edit().putFloat("alpha", alpha).apply()
+                prefs.edit().putFloat(prefKey, alpha).apply()
             }
         })
         layout.addView(valueLabel)
@@ -826,9 +927,9 @@ class FloatingNoteService : Service() {
         dialog.show()
     }
 
-        private fun showFindReplace() {
+        private fun showFindReplace(noteId: Long) {
         val ctx = this
-        val activeSession = editors[activeNoteId] ?: editors.values.lastOrNull() ?: return
+        val activeSession = editors[noteId] ?: editors.values.lastOrNull() ?: return
         val ed = activeSession.input
         val sessionHistory = activeSession.history
         val layout = android.widget.LinearLayout(ctx).apply {
@@ -893,9 +994,9 @@ class FloatingNoteService : Service() {
             }
     }
 
-        private fun showInsertLink() {
+        private fun showInsertLink(noteId: Long) {
         val ctx = this
-        val activeSession = editors[activeNoteId] ?: editors.values.lastOrNull() ?: return
+        val activeSession = editors[noteId] ?: editors.values.lastOrNull() ?: return
         val ed = activeSession.input
         val urlField = android.widget.EditText(ctx).apply {
             hint = getString(R.string.link_url_hint)
@@ -933,8 +1034,8 @@ class FloatingNoteService : Service() {
             }
     }
 
-        private fun toggleRtlLtr() {
-        val ed = (editors[activeNoteId] ?: editors.values.lastOrNull())?.input ?: return
+        private fun toggleRtlLtr(noteId: Long) {
+        val ed = (editors[noteId] ?: editors.values.lastOrNull())?.input ?: return
         val current = ed.textDirection
         ed.textDirection = if (current == android.view.View.TEXT_DIRECTION_RTL)
             android.view.View.TEXT_DIRECTION_LTR
