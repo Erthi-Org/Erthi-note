@@ -16,7 +16,7 @@ android {
             }
         }
     }
-    namespace = "com.fgmachines.fgnote"
+    namespace = "org.erthi.note"
     compileSdk = 36
 
     defaultConfig {
@@ -45,6 +45,7 @@ android {
 }
 
 dependencies {
+    implementation("androidx.core:core-ktx:1.12.0")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20240303")
     androidTestImplementation("androidx.test:runner:1.6.2")

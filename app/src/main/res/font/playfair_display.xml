@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Playfair Display — elegant serif for English note titles and headers.
+    Provided via Google Fonts downloadable font provider.
+-->
+<font-family xmlns:app="http://schemas.android.com/apk/res-auto"
+    app:fontProviderAuthority="com.google.android.gms.fonts"
+    app:fontProviderPackage="com.google.android.gms"
+    app:fontProviderQuery="Playfair Display"
+    app:fontProviderCerts="@array/com_google_android_gms_fonts_certs">
+</font-family>

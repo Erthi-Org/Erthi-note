@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Cairo — variable-weight sans-serif supporting Arabic and Latin.
+    Provided via Google Fonts downloadable font provider.
+    Fallback: sans-serif (always available, no crash if provider absent).
+-->
+<font-family xmlns:app="http://schemas.android.com/apk/res-auto"
+    app:fontProviderAuthority="com.google.android.gms.fonts"
+    app:fontProviderPackage="com.google.android.gms"
+    app:fontProviderQuery="Cairo"
+    app:fontProviderCerts="@array/com_google_android_gms_fonts_certs">
+</font-family>
