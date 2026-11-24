@@ -119,4 +119,12 @@
     <string name="settings_backup_info">Encrypted backups are protected by a password you set. Backups can be up to 50 MB. Use the backup tools in the note list to export and restore.</string>
     <string name="settings_on">On</string>
     <string name="settings_off">Off</string>
+    <string name="trash_title">Recycle Bin</string>
+    <string name="trash_empty">Empty bin</string>
+    <string name="trash_empty_message">The recycle bin is empty.</string>
+    <string name="trash_restore">Restore</string>
+    <string name="trash_delete_forever">Delete forever</string>
+    <string name="trash_delete_confirm">Permanently delete &#8220;%1$s&#8221;? This cannot be undone.</string>
+    <string name="trash_empty_confirm">Permanently delete all %1$d notes? This cannot be undone.</string>
+    <string name="recycle_bin">Recycle Bin</string>
 </resources>

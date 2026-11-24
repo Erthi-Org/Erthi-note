@@ -183,6 +183,26 @@ class NoteStore(context: Context) :
     /**
      * Validate archive before calling. Use a transaction so failures never leave
      * a partially imported archive. Merge; do NOT wipe existing notes.
+
+    fun allDeleted(): List<Note> {
+        val result = mutableListOf<Note>()
+        readableDatabase.query("notes", columns, "deleted_at IS NOT NULL", null, null,
+            null, "deleted_at DESC, id DESC").use { c -> while (c.moveToNext()) result.add(row(c)) }
+        return result
+    }
+
+    fun restore(id: Long): Boolean =
+        writableDatabase.update("notes",
+            ContentValues().apply { putNull("deleted_at") },
+            "id = ? AND deleted_at IS NOT NULL", arrayOf(id.toString())) > 0
+
+    fun permanentlyDelete(id: Long): Boolean =
+        writableDatabase.delete("notes", "id = ? AND deleted_at IS NOT NULL",
+            arrayOf(id.toString())) > 0
+
+    fun emptyTrash(): Int =
+        writableDatabase.delete("notes", "deleted_at IS NOT NULL", null)
+
      */
     fun importNotes(items: List<Note>): List<Long> {
         val db = writableDatabase

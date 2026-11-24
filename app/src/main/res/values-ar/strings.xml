@@ -119,4 +119,12 @@
     <string name="settings_backup_info">النسخ الاحتياطية المشفرة محمية بكلمة مرور تحددها. يمكن أن تصل النسخة الاحتياطية إلى 50 ميجابايت.</string>
     <string name="settings_on">تشغيل</string>
     <string name="settings_off">إيقاف</string>
+    <string name="trash_title">سلة المحذوفات</string>
+    <string name="trash_empty">إفراغ السلة</string>
+    <string name="trash_empty_message">سلة المحذوفات فارغة.</string>
+    <string name="trash_restore">استعادة</string>
+    <string name="trash_delete_forever">حذف نهائي</string>
+    <string name="trash_delete_confirm">حذف &#8220;%1$s&#8221; نهائياً؟ لا يمكن التراجع عن هذا.</string>
+    <string name="trash_empty_confirm">حذف %1$d ملاحظات نهائياً؟ لا يمكن التراجع عن هذا.</string>
+    <string name="recycle_bin">سلة المحذوفات</string>
 </resources>

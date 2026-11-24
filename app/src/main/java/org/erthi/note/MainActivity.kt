@@ -397,6 +397,10 @@ class MainActivity : Activity() {
         content.addView(action(getString(R.string.settings), false) {
             startActivity(android.content.Intent(this, SettingsActivity::class.java))
         })
+        content.addSpace(this, 8)
+        content.addView(action(getString(R.string.recycle_bin), false) {
+            startActivity(android.content.Intent(this, TrashActivity::class.java))
+        })
         filter.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
