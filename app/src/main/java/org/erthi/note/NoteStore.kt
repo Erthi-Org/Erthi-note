@@ -167,6 +167,22 @@ class NoteStore(context: Context) :
             if (at == null) putNull("reminder_at") else put("reminder_at", at)
         })
 
+    /** Duplicate a note, returning the new note's id or -1 on failure. */
+    fun duplicate(id: Long): Long {
+        val note = get(id) ?: return -1L
+        val values = ContentValues().apply {
+            put("title", note.title.take(500))
+            put("body", note.body)
+            put("rich_html", note.richHtml)
+            put("color", note.color)
+            put("tags", note.tags)
+            put("updated_at", System.currentTimeMillis())
+            put("title_size", note.titleSizeSp)
+            put("title_ink", note.titleInk)
+        }
+        return try { writableDatabase.insertOrThrow("notes", null, values) } catch (_: Exception) { -1L }
+    }
+
     private fun change(id: Long, values: ContentValues): Boolean =
         writableDatabase.update("notes", values, "id = ?", arrayOf(id.toString())) > 0
 

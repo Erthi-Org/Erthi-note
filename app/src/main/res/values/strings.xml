@@ -161,6 +161,7 @@
     <string name="view_archived">Archived notes</string>
     <string name="view_favorites">Favourites</string>
     <string name="toggle_rtl">Toggle RTL/LTR</string>
+    <string name="duplicate_note">Duplicate</string>
     <string name="bullet_list">Bullet list</string>
     <string name="numbered_list">Numbered list</string>
     <string name="insert_link">Insert link</string>

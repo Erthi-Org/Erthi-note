@@ -546,6 +546,11 @@ class MainActivity : Activity() {
             38) { editTags(note) })
         buttons.addView(icon(R.drawable.ic_bell, getString(R.string.reminders), Palette.PANEL,
             38) { selectReminder(note) })
+        buttons.addView(icon(R.drawable.ic_copy, getString(R.string.duplicate_note), Palette.PANEL,
+            38) {
+            val newId = database.duplicate(note.id)
+            if (newId > 0) render()
+        })
         buttons.addView(icon(R.drawable.ic_trash, getString(R.string.delete), Palette.PANEL,
             38) {
             AlertDialog.Builder(this)

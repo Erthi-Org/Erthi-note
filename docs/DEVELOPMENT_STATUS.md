@@ -1,59 +1,112 @@
 # Erthi Note — Development Status
 
 **Branch:** `dev/erthi-stages-5-20`
-**Latest verified commit:** `0ca9ec4` (Stage C: RTL/LTR toggle; fix FontEntry field names in font picker)
-**Last successful APK build:** None yet (CI blocked by duplicate string)
+**Latest local commit:** `00ae30e` + pending note-duplication commit
+**Last successful APK build:** pending CI verification
 
 ---
 
 ## Completed features (source-verified)
+
+### Identity & Branding
 - Application ID: `org.erthi.note`; launcher label "Erthi Note" / "إرثي نوتة"
 - All FG Machines / Nexvary branding replaced
 - Andalusian color palette (Deep Glossy Black, Metallic Silver, Andalusian Gold)
-- FontManager: `FontEntry(displayName, familyName)` — field names corrected
-- Font picker dialog with RTL/LTR toggle
-- RichNotes: bold, heading, color, checklist, inline images, HTML serialize/deserialize
-- RichHistory: per-editor undo/redo stack (now per-window via `EditorSession.history`)
-- FloatingNoteService: up to 4 independent windows, dragging, resizing, opacity
-- NoteStore: SQLite v1–v8 migration, CRUD, pin, reminder, favorites, archive, trash
-- SecureNoteArchive: AES-256-GCM, PBKDF2 210k iterations, legacy .nfn compatibility
-- PinActivity: SHA-256 hashed PIN, throttle, skip option
-- TrashActivity: recycle bin with restore and permanent delete
-- AboutActivity: Erthi branding, website, email, open-source notice
+- AboutActivity with Erthi branding
+
+### Rich Text Editor
+- Bold, italic, underline, strikethrough
+- Font size up/down (relative), heading
+- Text color (foreground), background highlight (yellow)
+- Align left / center
+- Checklist toggle
+- Bullet list / numbered list (toggle per line)
+- Hyperlink insert (overlay dialog)
+- Find & Replace (overlay dialog)
+- RTL/LTR toggle per note
+- Clear formatting (selection-scoped)
+- Undo / redo (per-window, isolated history)
+- Inline images (via ACTION_INSERT_IMAGE intent)
+- Font family picker (system + downloadable + imported TTF/OTF)
+
+### Font Engine
+- FontManager: FontEntry with displayName, familyName, resId, Category
+- Downloadable fonts: Cairo, Amiri, Noto Kufi Arabic, Tajawal, Reem Kufi,
+  Playfair Display, EB Garamond, Montserrat (Google Fonts provider XML)
+- TTF/OTF import and deletion
+- CustomTypefaceSpan: proper Typeface-backed rendering for non-system fonts
+- Font persistence: erthi-fonts HTML comment preserves TypefaceSpan and
+  CustomTypefaceSpan family names across save/reopen
+
+### Floating Notes
+- Up to 4 independent windows (windowManager TYPE_APPLICATION_OVERLAY)
+- Per-window isolated RichHistory (EditorSession.history)
+- Dragging, resizing, opacity slider
+- Minimize/maximize, autosave (350ms debounce)
+- Quick Settings tile
+
+### Note Organization
+- CRUD, pin, reminder, search
+- Favorites, archive, recycle bin
+- Tags (comma-separated, editable inline)
+- **Note duplication** (new — duplicates title, body, richHtml, color, tags)
+- Color picker per note
+
+### Security
+- PinActivity: SHA-256 hashed PIN, throttle (service-level), skip option
+- SecureNoteArchive: AES-256-GCM, PBKDF2 210k iterations
+- Settings screen: PIN toggle with confirm-before-disable
+
+### Backup & Export
+- JSON backup (NoteArchive) with legacy .nfn compatibility
+- Encrypted backup (SecureNoteArchive)
 - NoteExporter: PDF via Canvas, PNG, TXT, HTML
-- NoteArchive JSON: backup/restore, format identifier preserved for legacy import
-- Dark/light theme split in styles.xml
+- DOCX export via OpenXML
 
-## Partially implemented features
-- Downloadable fonts (Cairo, Amiri, Playfair Display declared; not yet applied to views)
-- Settings screen: stub button added; full UI not yet implemented
-- Light theme toggle: style defined; user-selectable toggle not wired
+### Settings
+- Dark theme toggle (recreate on change)
+- RTL default for new notes
+- PIN protection toggle
+- About Erthi link
+
+---
+
+## Partially implemented
+- Downloadable fonts: declared in XML, loaded via ResourcesCompat on demand;
+  offline fallback to system font if provider not yet delivered
+- Font previews in picker: shows display name only, no visual preview row
+- Light theme: style defined, applied on recreate; no live preview
 - Geometric Andalusian ornament drawables: not yet created
+- Settings: backup section shows info text only; no interactive backup controls
+  in SettingsActivity (export/import still only in MainActivity)
 
-## Remaining features (priority order)
-1. **CI green build** — push current batch fix commit, verify passing
-2. Font engine: apply downloadable fonts to EditText; add Noto Kufi Arabic, Tajawal, Reem Kufi, EB Garamond; offline fallback
-3. Font persistence: custom TypefaceSpan not preserved by Html.toHtml — needs supplementary span serialization
-4. Settings screen: theme toggle, RTL default, PIN, backup controls
-5. Biometric / Android Keystore-backed encryption
-6. Folders, categories, tag management, bulk operations
-7. DOCX export: rich formatting, Arabic RTL
-8. PDF: Arabic direction, long-note pagination
-9. Reminder delivery on API 35 / Doze test
-10. Runtime verification: 4 floating windows, dragging, keyboard, rotation, screen-lock
-11. Emulator smoke tests (API 26 + API 35)
-12. Release signing configuration
+## Remaining (priority order)
+1. **Green CI build** — verify lint/compile after latest pushes
+2. Font picker with per-row typeface preview
+3. Biometric / Android Keystore-backed encryption
+4. Folders and subfolders in NoteStore + MainActivity
+5. Bulk operations (multi-select archive/delete/favorite)
+6. DOCX export: Arabic RTL direction
+7. PDF: Arabic direction, long-note pagination
+8. Reminder delivery on API 35 / Doze test
+9. Runtime verification: 4 floating windows, keyboard, rotation, screen-lock
+10. Emulator smoke tests (API 26 + API 35)
+11. Release signing configuration
 
-## Known defects (fixed in this session)
-- **FIXED:** Duplicate `settings_section_appearance` in strings.xml → build failure
-- **FIXED:** `editorHistory` and `currentNoteTitle` were service-level fields shared across windows; find-replace and font-picker now use `EditorSession.history` and `activeNoteId`
+## Known fixed defects (this session)
+- Duplicate `settings_section_appearance` in strings.xml → build failure FIXED
+- Shared `editorHistory`/`currentNoteTitle` service fields shared across windows FIXED
+- SuspiciousIndentation lint error in NoteArchive.kt:83 FIXED
+- Missing Arabic translations for 20+ strings FIXED
 
-## Latest CI result
-- Run `45396801077`: FAILED — `String/settings_section_appearance more than one time`
-- Fix committed and pushed in batch after `0ca9ec4`
+## CI history
+- Run 45396801077: FAILED — duplicate string
+- Run 45400809384: FAILED — lint SuspiciousIndentation + font translations missing
+- Run 45401981486: FAILED — MissingTranslation (settings_section_appearance in AR)
+- Run 45403675525: PENDING result (pushed Arabic translations fix)
+- Runs for 00ae30e, note-duplication commit: not yet checked (rate-limited)
 
 ## Exact next engineering action
-1. Confirm CI passes on the batch fix commit.
-2. Apply downloadable fonts to FloatingNoteService `EditText` and `SettingsActivity`.
-3. Implement full SettingsActivity (theme, RTL, PIN, backup).
-4. Add font span persistence (supplementary JSON alongside HTML blob in NoteStore).
+1. Wait for GitHub rate limit reset, check CI for 45403675525+.
+2. If green: proceed to font picker preview rows.
+3. If red: get error, fix in one batch.
