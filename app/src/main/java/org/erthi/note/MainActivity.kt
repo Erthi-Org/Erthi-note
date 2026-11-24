@@ -43,6 +43,7 @@ class MainActivity : Activity() {
         private const val REQUEST_PICK_IMAGE = 316
         private const val REQUEST_EXPORT_TXT = 317
         private const val REQUEST_EXPORT_HTML = 318
+        private const val REQUEST_PIN = 319
     }
 
     private lateinit var database: NoteStore
@@ -59,6 +60,11 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         database = NoteStore(this)
+        if (savedInstanceState == null && PinActivity.isEnabled(this)) {
+            startActivityForResult(
+                android.content.Intent(this, PinActivity::class.java)
+                    .setAction(PinActivity.ACTION_VERIFY), REQUEST_PIN)
+        }
         savedInstanceState?.let { saved ->
             saved.getString("pending_overlay_action")?.let { action ->
                 pendingOverlayAction = action to saved.getLong("pending_overlay_id", -1L)
@@ -641,6 +647,12 @@ class MainActivity : Activity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (resultCode != RESULT_OK) return
+        if (requestCode == REQUEST_PIN) {
+            if (resultCode != RESULT_OK) {
+                finishAffinity()
+            }
+            return
+        }
         val uri = data?.data ?: return
         if (requestCode == REQUEST_PICK_IMAGE) {
             val id = pendingImageId

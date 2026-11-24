@@ -51,6 +51,22 @@ class SettingsActivity : Activity() {
             prefs.getBoolean("rtl_default", false)
         ) { prefs.edit().putBoolean("rtl_default", it).apply() })
 
+        body.addView(sectionLabel(getString(R.string.settings_section_security)))
+        body.addView(toggleRow(
+            getString(R.string.pin_protection),
+            getString(R.string.pin_protection_desc),
+            PinActivity.isEnabled(this)
+        ) { enable ->
+            if (enable) {
+                startActivityForResult(
+                    android.content.Intent(this, PinActivity::class.java)
+                        .setAction(PinActivity.ACTION_SETUP), 801)
+            } else {
+                getSharedPreferences(PinActivity.PREFS_NAME, MODE_PRIVATE).edit()
+                    .remove(PinActivity.PREF_PIN_HASH).apply()
+            }
+        })
+
         body.addView(sectionLabel(getString(R.string.settings_section_backup)))
         body.addView(infoRow(getString(R.string.settings_backup_info)))
 
