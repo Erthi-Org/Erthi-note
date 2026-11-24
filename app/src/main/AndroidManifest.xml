@@ -55,10 +55,10 @@
             android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".SettingsActivity"
-            android:exported="false"
+            android:exported="false" />
         <activity
             android:name=".TrashActivity"
-            android:exported="false"
+            android:exported="false" />
         <activity
             android:name=".PinActivity"
             android:exported="false"

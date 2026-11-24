@@ -188,10 +188,8 @@ class NoteStore(context: Context) :
     fun search(query: String): List<Note> =
         if (query.isBlank()) all() else all().filter { NoteText.matches(it.body, query) || NoteText.matches(it.customTitle, query) || NoteText.matches(it.tags, query) }
 
-    /**
-     * Validate archive before calling. Use a transaction so failures never leave
-     * a partially imported archive. Merge; do NOT wipe existing notes.
-
+    /** Validate archive before calling. Use a transaction so failures never leave
+     * a partially imported archive. Merge; do NOT wipe existing notes. */
     fun allDeleted(): List<Note> {
         val result = mutableListOf<Note>()
         readableDatabase.query("notes", columns, "deleted_at IS NOT NULL", null, null,
@@ -211,7 +209,6 @@ class NoteStore(context: Context) :
     fun emptyTrash(): Int =
         writableDatabase.delete("notes", "deleted_at IS NOT NULL", null)
 
-     */
     fun importNotes(items: List<Note>): List<Long> {
         val db = writableDatabase
         val ids = mutableListOf<Long>()
