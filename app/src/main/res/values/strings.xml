@@ -89,8 +89,20 @@
     <string name="title_bigger">Increase title size</string>
     <string name="title_smaller">Decrease title size</string>
     <string name="title_colour">Change title colour</string>
-    <string name="quick_tile_label">FG Note</string>
-    <string name="quick_tile_add">Add FG Note to Quick Settings</string>
-    <string name="quick_tile_added">FG Note was added to Quick Settings</string>
-    <string name="quick_tile_manual">Swipe down twice, tap Edit (pencil), then add FG Note and drag it beside your Hotspot tile.</string>
+    <string name="quick_tile_label">Erthi Note</string>
+    <string name="quick_tile_add">Add Erthi Note to Quick Settings</string>
+    <string name="quick_tile_added">Erthi Note was added to Quick Settings</string>
+    <string name="quick_tile_manual">Swipe down twice, tap Edit (pencil), then add Erthi Note and drag it beside your Hotspot tile.</string>
+
+    <string name="about_back">Back</string>
+    <string name="about_version">Version %1$s</string>
+    <string name="about_description">Erthi Note is an independent charitable initiative by the Erthi organisation. It provides a free, offline-first, floating notes experience for Arabic and English speakers. No advertising. No data collection. No internet connection required.</string>
+    <string name="about_website">erthi.org</string>
+    <string name="about_email">info@erthi.org</string>
+    <string name="about_privacy_heading">Privacy</string>
+    <string name="about_privacy_body">Erthi Note stores all notes locally on your device. No data is sent to any server. The application does not request internet permission. Encrypted backups are protected by a password you choose; they cannot be recovered without it.</string>
+    <string name="about_licences_heading">Open-source libraries</string>
+    <string name="about_licences_body">Erthi Note is built on the Android platform and uses only Android SDK and standard Java libraries. No third-party runtime libraries are included. The application source is available at github.com/Erthi-Org/Erthi-note.</string>
+    <string name="settings">Settings</string>
+    <string name="about_erthi">About Erthi</string>
 </resources>

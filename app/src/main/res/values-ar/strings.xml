@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">FG Note</string>
+    <string name="app_name">إرثي نوتة</string>
     <string name="tagline">أفكارك أمامك بضغطة واحدة</string>
     <string name="overlay_title">مساحة الملاحظات العائمة</string>
     <string name="overlay_description">احتفظ بملاحظاتك فوق التطبيقات الأخرى.</string>
@@ -89,8 +89,20 @@
     <string name="title_bigger">تكبير عنوان الملاحظة</string>
     <string name="title_smaller">تصغير عنوان الملاحظة</string>
     <string name="title_colour">تغيير لون عنوان الملاحظة</string>
-    <string name="quick_tile_label">FG Note</string>
-    <string name="quick_tile_add">إضافة FG Note إلى الاختصارات العلوية</string>
-    <string name="quick_tile_added">تمت إضافة FG Note إلى لوحة الإعدادات السريعة</string>
-    <string name="quick_tile_manual">اسحب من أعلى الشاشة مرتين، واضغط تعديل (القلم)، ثم أضف FG Note واسحبها بجوار نقطة الاتصال الشخصية.</string>
+    <string name="quick_tile_label">إرثي نوتة</string>
+    <string name="quick_tile_add">إضافة إرثي نوتة إلى الاختصارات العلوية</string>
+    <string name="quick_tile_added">تمت إضافة إرثي نوتة إلى لوحة الإعدادات السريعة</string>
+    <string name="quick_tile_manual">اسحب من أعلى الشاشة مرتين، واضغط تعديل (القلم)، ثم أضف إرثي نوتة واسحبها بجوار نقطة الاتصال الشخصية.</string>
+
+    <string name="about_back">رجوع</string>
+    <string name="about_version">الإصدار %1$s</string>
+    <string name="about_description">إرثي نوتة مبادرة خيرية مستقلة من منظمة إرثي. توفر تجربة ملاحظات عائمة مجانية تعمل دون اتصال بالإنترنت للمستخدمين العرب والإنجليز. لا إعلانات. لا جمع بيانات. لا حاجة للإنترنت.</string>
+    <string name="about_website">erthi.org</string>
+    <string name="about_email">info@erthi.org</string>
+    <string name="about_privacy_heading">الخصوصية</string>
+    <string name="about_privacy_body">تُخزّن إرثي نوتة جميع الملاحظات محلياً على جهازك. لا تُرسَل أي بيانات إلى أي خادم. لا تطلب التطبيقات إذن الإنترنت. النسخ الاحتياطية المشفرة محمية بكلمة مرور تختارها أنت؛ ولا يمكن استعادتها بدونها.</string>
+    <string name="about_licences_heading">المكتبات مفتوحة المصدر</string>
+    <string name="about_licences_body">إرثي نوتة مبنية على منصة أندرويد وتستخدم حصرياً مكتبات Android SDK وJava القياسية. لا تتضمن مكتبات خارجية. الكود المصدري متاح على github.com/Erthi-Org/Erthi-note.</string>
+    <string name="settings">الإعدادات</string>
+    <string name="about_erthi">عن إرثي</string>
 </resources>

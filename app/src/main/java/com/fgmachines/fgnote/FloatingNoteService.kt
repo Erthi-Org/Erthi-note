@@ -41,11 +41,11 @@ import kotlin.math.min
  */
 class FloatingNoteService : Service() {
     companion object {
-        const val ACTION_START = "com.fgmachines.fgnote.START"
-        const val ACTION_OPEN = "com.fgmachines.fgnote.OPEN"
-        const val ACTION_NEW = "com.fgmachines.fgnote.NEW"
-        const val ACTION_CLOSE_EDITOR = "com.fgmachines.fgnote.CLOSE_EDITOR"
-        const val ACTION_INSERT_IMAGE = "com.fgmachines.fgnote.INSERT_IMAGE"
+        const val ACTION_START = "org.erthi.note.START"
+        const val ACTION_OPEN = "org.erthi.note.OPEN"
+        const val ACTION_NEW = "org.erthi.note.NEW"
+        const val ACTION_CLOSE_EDITOR = "org.erthi.note.CLOSE_EDITOR"
+        const val ACTION_INSERT_IMAGE = "org.erthi.note.INSERT_IMAGE"
         const val EXTRA_NOTE_ID = "note_id"
         private const val CHANNEL = "floating_notes"
         private const val NOTIFICATION_ID = 1001
@@ -625,7 +625,7 @@ class FloatingNoteService : Service() {
             notes.updateRich(noteId, editor.titleInput.text.toString(),
                 RichNotes.plainText(editor.input.text), RichNotes.serialize(editor.input.text))
         } catch (error: Exception) {
-            Log.w("FGNote", "Inline image insertion failed", error)
+            Log.w("ErthiNote", "Inline image insertion failed", error)
             toast(R.string.image_too_large)
         }
     }

@@ -32,7 +32,7 @@ import java.util.Date
 class MainActivity : Activity() {
     companion object {
         const val EXTRA_OPEN_NOTE = "open_note"
-        const val EXTRA_TILE_TOGGLE = "fg_note_quick_tile_toggle"
+        const val EXTRA_TILE_TOGGLE = "erthi_note_quick_tile_toggle"
         const val EXTRA_PICK_IMAGE_NOTE = "pick_image_note"
         private const val REQUEST_EXPORT = 310
         private const val REQUEST_IMPORT = 311
@@ -274,9 +274,7 @@ class MainActivity : Activity() {
         scroll.addView(content)
         root.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
 
-        content.addView(label("FG MACHINES  /  NOTES", 12f, Palette.MINT, true))
-        content.addSpace(this, 9)
-        content.addView(label(getString(R.string.app_name), 29f, Palette.WHITE, true))
+                content.addView(label(getString(R.string.app_name), 29f, Palette.WHITE, true))
         content.addSpace(this, 7)
         content.addView(label(getString(R.string.tagline), 14f, Palette.MUTED))
         content.addSpace(this, 22)
@@ -391,6 +389,10 @@ class MainActivity : Activity() {
             content.addSpace(this, 10)
             content.addView(secureBar)
         }
+        content.addSpace(this, 20)
+        content.addView(action(getString(R.string.about_erthi), false) {
+            startActivity(android.content.Intent(this, AboutActivity::class.java))
+        })
         filter.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
@@ -616,7 +618,7 @@ class MainActivity : Activity() {
         startActivityForResult(Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
             addCategory(Intent.CATEGORY_OPENABLE)
             type = "application/json"
-            putExtra(Intent.EXTRA_TITLE, "nexvary-notes-backup.json")
+            putExtra(Intent.EXTRA_TITLE, "erthi-notes-backup.json")
         }, REQUEST_EXPORT)
     }
 

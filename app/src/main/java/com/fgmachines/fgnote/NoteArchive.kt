@@ -17,6 +17,7 @@ object NoteArchive {
 
     fun export(notes: List<Note>, output: OutputStream) {
         require(notes.size <= MAX_NOTES) { "Too many notes" }
+        // Legacy format identifier preserved for backward-compatible restore of old backups.
         val root = JSONObject().put("format", "nexvary-floating-note")
             .put("version", VERSION)
         val list = JSONArray()

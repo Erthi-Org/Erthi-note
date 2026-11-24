@@ -47,7 +47,7 @@ class FGNoteTileService : TileService() {
             })
             updateAppearance(true)
         } catch (error: RuntimeException) {
-            Log.w("FGNoteTile", "Foreground launch denied, opening app", error)
+            Log.w("ErthiTile", "Foreground launch denied, opening app", error)
             launchVisibleApp()
         }
     }
@@ -95,7 +95,7 @@ class FGNoteTileService : TileService() {
                 requestListeningState(context, ComponentName(context, FGNoteTileService::class.java))
             } catch (error: RuntimeException) {
                 // User might not have installed the tile yet.
-                Log.d("FGNoteTile", "Tile not available for refresh", error)
+                Log.d("ErthiTile", "Tile not available for refresh", error)
             }
         }
     }

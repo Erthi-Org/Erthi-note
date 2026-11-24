@@ -15,7 +15,7 @@ import android.os.Build
 /** Inexact reminders work without special exact-alarm privileges. */
 object ReminderScheduler {
     const val CHANNEL = "note_reminders"
-    const val ACTION_REMIND = "com.fgmachines.fgnote.REMIND"
+    const val ACTION_REMIND = "org.erthi.note.REMIND"
     const val EXTRA_NOTE_ID = "reminder_note_id"
 
     private fun alarmIntent(context: Context, id: Long): PendingIntent =
